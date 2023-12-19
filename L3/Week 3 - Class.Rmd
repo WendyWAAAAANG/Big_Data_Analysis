@@ -1,0 +1,194 @@
+---
+title: "Week 3-class"
+author: "Dr.Jingzhi Zhang"
+date: "2023-02-28"
+output: html_document
+---
+
+```{r}
+rm(list = ls())
+```
+```{r}
+library(readxl) # required package
+myData <- read_xlsx("Class.xlsx","Customers")
+```
+
+#as.numeric: 公共的数据集中会包含数字信息,但却会以字符的形式存储,此时通过转换函数将其类型更改,便于进一步的数据分析
+# quantiles(): produces sample quantiles corresponding to the given probabilities
+```{r}
+myData$DaysSinceLastReverse <- as.numeric(myData$DaysSinceLast * -1)
+#Generate regular sequences: seq()
+recencyBins <- quantile(myData$DaysSinceLastReverse, probs=seq(0, 1, by=0.20))
+recencyBins
+myData$Recency <- cut(myData$DaysSinceLastReverse,
+                        breaks=recencyBins,labels=c("1", "2", "3", "4", "5"), 
+                       include.lowest=TRUE, right=FALSE)
+
+myData$Recency
+```
+
+```{r}
+myData$RFM <- paste(myData$Recency, myData$Frequency, myData$Monetary)
+head(myData$RFM)
+
+myData$MembershipTier <- cut(myData$Spending2021, 
+                             breaks = c(0, 250, 1000, Inf),
+                             labels = c("Bronze", "Silver", "Gold"))
+head(myData$MembershipTier)
+View(myData)
+```
+
+
+```{r}
+# Example 2.5
+# Import the Customers data file into a data frame (table) and label it myData
+myData$SpendingDiff <- myData$Spending2021 - myData$Spending2020
+#round():返回一个数值，该数值是按照x的小数位数进行四舍五入运算的结果
+myData$PctSpendingDiff <- round((myData$SpendingDiff / myData$Spending2020)*100, digits = 2)
+myData$PctSpendingDiff <- paste(myData$PctSpendingDiff, "%")
+head(myData$PctSpendingDiff)
+```
+
+
+```{r}
+myData$IncomeLn <- log(myData$Income)
+head(myData$IncomeLn)
+```
+
+
+```{r}
+#转化Birthdata为data类型的数值
+myData$BirthDate <- as.Date(myData$BirthDate, format = "%m/%d/%Y")
+#今日的日期作为end date
+endDate <- as.Date("01/01/2019", format = "%m/%d/%Y")
+#calculate age
+myData$Age <- difftime(endDate, myData$BirthDate)/365.25
+
+#as.numeric: 通过转换函数将其类型更改为数值类型
+myData$Age <- as.numeric(myData$Age)
+#floor()向下取整
+myData$Age <- floor(myData$Age)
+head(myData$Age)
+
+#取生日日期的月份作为生日月
+myData$BirthMonth <- months(myData$BirthDate)
+myData$ISBirthMonth <- match(myData$BirthMonth,"七月")
+head(myData$ISBirthMonth)
+View(myData)
+```
+
+
+```{r}
+# Example 2.6
+# %in% 判断前面一个向量内的元素是否在后面一个向量中,返回布尔值
+table(myData$Race) 
+myData$NewRace <- ifelse(myData$Race %in% c("American Indian", "Pacific Islander"), "Other", myData$Race)
+table(myData$NewRace)
+View(myData)
+```
+
+
+```{r}
+# Example 2.7
+# Import the Customers data file into a data frame (table) and label it myData
+myData$Channel_Referral <- ifelse(myData$Channel == "Referral", 1, 0)
+myData$Channel_SM <- ifelse(myData$Channel == "SM", 1, 0)
+myData$Channel_TV <- ifelse(myData$Channel == "TV", 1, 0)
+View(myData)
+```
+
+
+```{r}
+# Example 2.8
+# Import the Customers data file into a data frame (table) and label it myData
+myData$Satisfaction_Score <- ifelse(myData$Satisfaction == "Very Dissatisfied", 1, 
+                             ifelse(myData$Satisfaction == "Somewhat Dissatisfied", 2,
+                             ifelse(myData$Satisfaction == "Neutral", 3,
+                             ifelse(myData$Satisfaction == "Somewhat Satisfied", 4, 5))))
+View(myData)
+
+```
+
+
+# Chapter 3 Summary Measures
+
+
+
+```{r}
+rm(list = ls())
+myData <- read_xlsx("Class.xlsx","Growth")
+```
+
+```{r}
+#Finding the mean and the median for the Growth and Value variables
+
+mean(myData$Growth)
+median(myData$Growth)
+mean(myData$Value)
+median(myData$Value)
+#Or we can find the measures using the summary function
+summary(myData)
+
+```
+#Example 3.4
+#Import the Growth_Value data file and label it myData
+```{r}
+#Finding the range, interquartile range, mean absolute deviation (MAD), variance, and standard deviation for Growth 
+max(myData$Growth) - min(myData$Growth)
+
+quantile(myData$Growth, 0.75)-quantile(myData$Growth, 0.25)
+
+mean(abs(myData$Growth-mean(myData$Growth)))
+
+var(myData$Growth) 
+
+sd(myData$Growth)
+
+```
+
+```{r}
+#Example 3.5
+
+#Finding the coefficient of variation for Growth and Value 
+sd(myData$Growth)/mean(myData$Growth)
+sd(myData$Value)/mean(myData$Value)
+```
+
+```{r}
+#Example 3.6
+#Finding the Sharpe ratio for Growth and Value 
+(mean(myData$Growth)-2)/sd(myData$Growth)
+(mean(myData$Value)-2)/sd(myData$Value)
+```
+
+
+```{r}
+cor(myData)
+
+cor(myData$Growth,myData$Value)
+```
+```{r}
+#Example 3.9
+
+#Constructing boxplot for Growth and Value
+boxplot(myData$Growth, myData$Value, main= "Boxplots for Growth and Value", xlab="Annual Returns (in %) for Growth and Value, 1984-2018", names =c("Growth","Value"), horizontal = TRUE, notch = TRUE, col="gold")
+```
+
+
+```{r}
+#finding outliers
+outliersGrowth <- boxplot(myData$Growth)$out; outliersGrowth
+outliersValue <- boxplot(myData$Value)$out; outliersValue
+```
+
+
+```{r}
+#replacing outliers with NA
+myData$newValue <- ifelse(myData$Value %in% outliersValue, NA, myData$Value)
+
+summary(myData)
+
+```
+
+
+

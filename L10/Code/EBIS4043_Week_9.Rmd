@@ -1,0 +1,207 @@
+---
+title: "EBIS3103_week9"
+author: "Dr.Jingzhi Zhang"
+date: "2023-04-09"
+output: html_document
+---
+```{r}
+library(readxl)
+options(scipen=999)
+```
+
+
+```{r}
+# Examples 9.1 and 9.2 Linear Model and Logistic Regression Results
+myData <- myData <- read_excel("EBIS_Week9.xlsx", sheet = "Mortgage")
+Linear_Model <- lm(y~x1+x2, data = myData); summary(Linear_Model)
+
+Logistic_Model <- glm(y ~ x1 + x2, family = binomial, data = myData); summary(Logistic_Model)
+
+predict(Linear_Model, data.frame(x1=c(20, 30), x2=30))
+predict(Logistic_Model, data.frame(x1=c(20, 30), x2=30), type = "response") #response refers to dummy variable
+```
+
+```{r}
+# Example 9.3 
+myData <- myData <- read_excel("EBIS_Week9.xlsx", sheet = "Spam")
+Linear_Model <- lm(Spam ~ Recipients + Hyperlinks + Characters, data = myData)
+summary(Linear_Model)
+
+Logistic_Model <- glm(Spam ~ Recipients + Hyperlinks + Characters, family = binomial, data = myData)
+
+summary(Logistic_Model)
+mRec <- seq(5,50,by = 5)
+```
+
+```{r}
+#mRec <- 10:50
+mHyp <- mean(myData$Hyperlinks)
+mCha <- mean(myData$Characters)
+pLin <- predict(Linear_Model, data.frame(Recipients=mRec, Hyperlinks=mHyp, Characters=mCha))
+pLog <- predict(Logistic_Model, data.frame(Recipients=mRec, Hyperlinks=mHyp, Characters=mCha), type = "response")
+plot(mRec,pLin,type="l",lwd=1, ylim=c(-0.1,1.2), col="blue", xlab="Recipients", ylab="LPM")
+lines(mRec,pLog,type="l",lwd=1, col="green")
+legend(10,1.0,c("LPM","Logistic"), lwd=c(1,1), col=c("blue","green"))
+# Temp <- data.frame(mRec,pLin,pLog);write.csv(Temp, "Figure.csv")
+```
+
+```{r}
+# Example 9.4 THE PARTIAL EFFECT OF A PREDICTOR VARIABLE ON ODDS
+myData <- myData <- read_excel("EBIS_Week9.xlsx", sheet = "Spam")
+Logistic_Model <- glm(Spam ~ Recipients + Hyperlinks + Characters, family = binomial, data = myData)
+
+print("# when x increase one unit, the percentage of odd of y increase by b1*100% approximately ");
+cf <- coef(Logistic_Model); #extract coeffients of logistic regression
+
+cf[-1]*100
+(exp(cf[-1])-1)*100 #exact percentage:exp(b1)-1)×100%. #no constant coefficient
+```
+
+
+```{r}
+print("when x increase one unit, the natural log of odd of y increase by b1 or the percentage of odd of y increase by exp((b1)-1)×100% ");
+mRec <- seq(20,21,by = 1); mHyp <- mean(myData$Hyperlinks); mCha <- mean(myData$Characters)
+pLog <- predict(Logistic_Model, data.frame(Recipients=mRec, Hyperlinks=mHyp, Characters=mCha), type = "response")
+pLog
+oLog <- pLog/(1-pLog); 
+((oLog[2]/oLog[1])-1)*100 #percentage increase to (odd[new]/odd(old)-1)*100%
+
+
+
+```
+
+
+
+```{r}
+# Example 9.5 Using R to Compute Accuracy Rates
+myData <- myData <- read_excel("EBIS_Week9.xlsx", sheet = "Spam")
+Linear_Model <- lm(Spam ~ Recipients + Hyperlinks + Characters, data = myData)
+Logistic_Model <- glm(Spam ~ Recipients + Hyperlinks + Characters, family = binomial, data = myData)
+pHatLin <- predict(Linear_Model)
+pHatLog <- predict(Logistic_Model, type = "response")
+yHatLin <- ifelse(pHatLin >= 0.5, 1,0)
+yHatLog <- ifelse(pHatLog >= 0.5, 1,0)
+100*mean(myData$Spam == yHatLin)
+100*mean(myData$Spam == yHatLog)
+```
+
+
+```{r} 
+# Example 9.6 The Holdout Cross-Validation Method
+myData <- myData <- read_excel("EBIS_Week9.xlsx", sheet = "Spam")
+TData <- myData[1:375,]; VData <- myData[376:500,]
+Model1 <- glm(Spam ~ Recipients + Hyperlinks + Characters, family = binomial, data = TData)
+pHat1 <- predict(Model1, VData, type = "response")
+yHat1 <- ifelse(pHat1 >= 0.5, 1,0)
+100*mean(VData$Spam == yHat1)
+Model2 <- glm(Spam ~ Recipients + Hyperlinks, family = binomial, data = TData)
+pHat2 <- predict(Model2, VData, type = "response")
+yHat2 <- ifelse(pHat2 >= 0.5, 1,0)
+100*mean(VData$Spam == yHat2)
+Modelf <- glm(Spam ~ Recipients + Hyperlinks + Characters, family = binomial, data = myData)
+summary(Modelf)
+predict(Modelf, data.frame(Recipients=20, Hyperlinks=5, Characters=60), type="response")
+```
+
+
+
+
+# Example 9.7 The k-Fold Cross-Validation Method
+```{r}
+myData <- myData <- read_excel("EBIS_Week9.xlsx", sheet = "Spam")
+TData <- myData[1:375,]; VData <- myData[376:500,]
+Model1 <- glm(Spam ~ Recipients + Hyperlinks + Characters, family = binomial, data = TData)
+Model2 <- glm(Spam ~ Recipients + Hyperlinks, family = binomial, data = TData)
+pHat1 <- predict(Model1, VData, type = "response")
+yHat1 <- ifelse(pHat1 >= 0.5, 1,0)
+pHat2 <- predict(Model2, VData, type = "response")
+yHat2 <- ifelse(pHat2 >= 0.5, 1,0)
+Acc1a <- 100*mean(VData$Spam == yHat1)
+Acc2a <- 100*mean(VData$Spam == yHat2)
+TData <- myData[c(1:250, 376:500),]; VData <- myData[251:375,]
+Model1 <- glm(Spam ~ Recipients + Hyperlinks + Characters, family = binomial, data = TData)
+Model2 <- glm(Spam ~ Recipients + Hyperlinks, family = binomial, data = TData)
+pHat1 <- predict(Model1, VData, type = "response")
+yHat1 <- ifelse(pHat1 >= 0.5, 1,0)
+pHat2 <- predict(Model2, VData, type = "response")
+yHat2 <- ifelse(pHat2 >= 0.5, 1,0)
+Acc1b <- 100*mean(VData$Spam == yHat1)
+Acc2b <- 100*mean(VData$Spam == yHat2)
+TData <- myData[c(1:125, 251:500),]; VData <- myData[126:250,]
+Model1 <- glm(Spam ~ Recipients + Hyperlinks + Characters, family = binomial, data = TData)
+Model2 <- glm(Spam ~ Recipients + Hyperlinks, family = binomial, data = TData)
+pHat1 <- predict(Model1, VData, type = "response")
+yHat1 <- ifelse(pHat1 >= 0.5, 1,0)
+pHat2 <- predict(Model2, VData, type = "response")
+yHat2 <- ifelse(pHat2 >= 0.5, 1,0)
+Acc1c <- 100*mean(VData$Spam == yHat1)
+Acc2c <- 100*mean(VData$Spam == yHat2)
+TData <- myData[126:500,]; VData <- myData[1:125,]
+Model1 <- glm(Spam ~ Recipients + Hyperlinks + Characters, family = binomial, data = TData)
+Model2 <- glm(Spam ~ Recipients + Hyperlinks, family = binomial, data = TData)
+pHat1 <- predict(Model1, VData, type = "response")
+yHat1 <- ifelse(pHat1 >= 0.5, 1,0)
+pHat2 <- predict(Model2, VData, type = "response")
+yHat2 <- ifelse(pHat2 >= 0.5, 1,0)
+Acc1d <- 100*mean(VData$Spam == yHat1)
+Acc2d <- 100*mean(VData$Spam == yHat2)
+c(Acc1a,Acc1b,Acc1c,Acc1d);(Acc1a+Acc1b+Acc1c+Acc1d)/4
+c(Acc2a,Acc2b,Acc2c,Acc2d);(Acc2a+Acc2b+Acc2c+Acc2d)/4
+```
+
+
+```{r}
+# Example 9.8 Other Performance Measures
+myData <- myData <- read_excel("EBIS_Week9.xlsx", sheet = "Spam")
+TData <- myData[1:375,]; VData <- myData[376:500,]
+Model1 <- glm(Spam ~ Recipients + Hyperlinks + Characters, family = binomial, data = TData)
+pHat1 <- predict(Model1, VData, type = "response")
+yHat1 <- ifelse(pHat1 >= 0.5, 1,0)
+yTP1 <- ifelse(yHat1 == 1 & VData$Spam == 1, 1, 0)
+yTN1 <- ifelse(yHat1 == 0 & VData$Spam == 0, 1, 0)
+100*mean(VData$Spam == yHat1)
+100*(sum(yTP1)/sum(VData$Spam==1))
+100*(sum(yTN1)/sum(VData$Spam==0))
+Model2 <- glm(Spam ~ Recipients + Hyperlinks, family = binomial, data = TData)
+pHat2 <- predict(Model2, VData, type = "response")
+yHat2 <- ifelse(pHat2 >= 0.5, 1,0)
+yTP2 <- ifelse(yHat2 == 1 & VData$Spam == 1, 1, 0)
+yTN2 <- ifelse(yHat2 == 0 & VData$Spam == 0, 1, 0)
+100*mean(VData$Spam == yHat2)
+100*(sum(yTP2)/sum(VData$Spam==1))
+100*(sum(yTN2)/sum(VData$Spam==0))
+
+```
+
+
+# Example 9.9 Imbalanced Data
+```{r}
+myData <- myData <- read_excel("EBIS_Week9.xlsx", sheet = "Depression")
+TData <- myData[1:225,]; 
+VData <- myData[226:300,]
+Model <- glm(Depression~GPA+Attendance+Female,data=TData, family="binomial")
+pHat <- predict(Model, VData, type = "response")
+
+yHat1 <- ifelse(pHat >= 0.5, 1,0) #if p>0.5, equal 1, otherwise = 0
+# if yhat=1 and actual depression =1 then return 1，otherwise, return 0
+yTP1 <- ifelse(yHat1 == 1 & VData$Depression == 1, 1, 0)
+# if yhat=0 and actual depression = 0 then return 1，otherwise,return 0
+yTN1 <- ifelse(yHat1 == 0 & VData$Depression == 0, 1, 0)
+
+100*mean(VData$Depression == yHat1) #accuracy
+100*(sum(yTP1)/sum(VData$Depression==1)) #sensitivity 
+100*(sum(yTN1)/sum(VData$Depression==0)) #specificity
+```
+
+
+```{r}
+#set the cutoff = proportion of Depression
+yHat2 <- ifelse(pHat >= mean(TData$Depression), 1,0)
+yTP2 <- ifelse(yHat2 == 1 & VData$Depression == 1, 1, 0)
+yTN2 <- ifelse(yHat2 == 0 & VData$Depression == 0, 1, 0)
+100*mean(VData$Depression == yHat2)
+100*(sum(yTP2)/sum(VData$Depression==1))
+100*(sum(yTN2)/sum(VData$Depression==0))
+
+```
+

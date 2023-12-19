@@ -1,0 +1,44 @@
+---
+title: "Week 2 Material 1"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+  word_document: default
+---
+
+
+```{r}
+library(tidyverse)
+```
+
+# If library(tidyverse) does not work:
+```{r}
+library(dplyr)
+library(readr)
+```
+
+#clear the R environment
+```{r}
+rm(list = ls())
+myData <- read_xlsx("Class.xlsx","Growth")
+```
+#Generate GrowthLevel
+```{r}
+
+GrowthBins <- quantile(myData$Growth, probs=seq(0, 1, by=0.20))
+GrowthBins
+
+myData$GrowthLevel <- cut(myData$Growth,
+                        breaks=GrowthBins,labels=c("1", "2", "3", "4", "5"), 
+                       include.lowest=TRUE, right=FALSE)
+myData$GrowthLevel
+
+```
+
+
+#Constructing boxplot for Growth and Value
+```{r}
+boxplot(Value~GrowthLevel, data=myData, main= "Boxplots for Growth and Value", xlab="Annual Returns (in %) for Growth, 1984-2018", horizontal = FALSE, col="gold")
+```
+

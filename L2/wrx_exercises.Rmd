@@ -1,0 +1,37 @@
+---
+title: "BDA_Exercise2"
+author: "Ruoxin WANG"
+date: "2023-09-30"
+output: html_document
+---
+
+```{r}
+# 1)
+age <- c(23, 25, 21, 29, 32, 13)
+print(age[c(1, 2, 3, 6)])
+
+# 2)
+age_mean <- mean(age)
+age_med <- median(age)
+age_min <- min(age)
+age_max <- max(age)
+```
+
+
+```{r}
+data <- read.csv("projects.csv")
+str(data)
+```
+
+```{r}
+head(data)
+```
+
+
+```{r}
+# 2)
+high_tax <- data[which(data$poverty_level=="high"), 'sales_tax']
+print(high_tax)
+mean(high_tax)
+```
+

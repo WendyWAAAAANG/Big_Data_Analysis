@@ -1,0 +1,333 @@
+---
+title: "Week 7 Materials"
+output:
+  html_document:
+    df_print: paged
+---
+```{r}
+library(tidyverse)
+library(readxl)
+library(lubridate)
+options(scipen=100, digits=4)
+```
+
+```{r}
+df <- data.frame(x=1:20, y=2*1:20+0.3*((1:20)^2) + rnorm(20, 0, 10))
+df
+```
+#Aids the eye in seeing patterns in the presence of overplotting
+#se： Display confidence interval around smooth?
+#method: Smoothing method (function) to use, accepts either NULL or a character vector, e.g. "lm", "glm", "gam"、
+```{r}
+df %>%
+  ggplot(aes(x,y)) +
+  geom_point() +
+  geom_smooth(method="lm", se=FALSE) +
+  theme_classic()
+```
+
+# formula: Formula to use in smoothing function, eg. y ~ x, y ~ poly(x, 2), y ~ log(x)
+```{r}
+df %>%
+  ggplot(aes(x,y)) +
+  geom_point() +
+  geom_smooth(method="lm", se=TRUE, formula = y ~poly(x, 2)) +
+  theme_classic()
+```
+#show the confidence level around smooth
+```{r}
+df %>%
+  ggplot(aes(x,y)) +
+  geom_point() +
+  geom_smooth() +
+  theme_classic()
+```
+# Example 8.3: Home Market Value Data
+```{r}
+op<-read_xlsx("Crude Oil Prices.xlsx", skip=3)
+op<- op %>% mutate(Date=ym(Date))
+op<-op %>% arrange(Date) %>% mutate(Time=row_number(Date))
+
+```
+# Exponential 
+# Need to use nls; starting values for a & b are estimated by using OLS
+```{r}
+lmfit<-lm(log(Price)~Time,op)
+A = coef(lmfit)[1]
+B = coef(lmfit)[2]
+
+ggplot_exp<-op %>%
+  ggplot(aes(x=Time, y=Price)) +
+  geom_line() +
+  theme_classic()+
+  geom_smooth(method='nls',formula=y~a*exp(b*x), se=FALSE,method.args = list(start = list(a = A, b = B)))
+ggplot_exp
+```
+# Logarithmic 
+```{r}
+ggplot_log<-op %>%
+  ggplot(aes(x=Time, y=Price)) +
+  geom_line() +
+  theme_classic()+
+  geom_smooth(method="lm", formula=y~log(x), se=FALSE)
+ggplot_log
+```
+# Polynomial 2nd  
+```{r}
+ggplot_poly2<-op %>%
+  ggplot(aes(x=Time, y=Price)) +
+  geom_line() +
+  theme_classic()+
+  geom_smooth(method='lm',formula=y~poly(x,2), se=FALSE)
+ggplot_poly2
+```
+# Polynomial 3rd  
+```{r}
+ggplot_poly3<-op %>%
+  ggplot(aes(x=Time, y=Price)) +
+  geom_line() +
+  theme_classic()+
+  geom_smooth(method='lm',formula=y~poly(x,3), se=FALSE)
+ggplot_poly3
+```
+# Power 
+# similar to the exponential function case, nls is used for estimating a trendline model so starting values must be given to make the model converge.
+```{r}
+ggplot_power<-op %>%
+  ggplot(aes(x=Time, y=Price)) +
+  geom_line() +
+  theme_classic()+
+  geom_smooth(method='nls',formula=y~a*b^x, se=FALSE,,method.args=list(start=list(a=1, b=1)))
+ggplot_power
+```
+# Present all graphs at once
+```{r}
+library(cowplot)
+all_plots<-cowplot::plot_grid(ggplot_exp, ggplot_log, ggplot_poly2, ggplot_poly3, ggplot_power, labels = c("Exponential", "Logarithmic","Polynomial 2nd","Polynomial 3rd", "Power"), label_size=10, ncol=2)
+all_plots
+```
+# Example 8.3: Home Market Value Data
+```{r}
+hv<-read_xlsx("Home Market Value.xlsx", skip=2)
+```
+
+```{r}
+hv %>% ggplot(aes(`Square Feet`,`Market Value`))+
+  geom_point()+
+  theme_classic()
+```
+# In the case of simple regression, multiple R y~x = cor(x,y); r-squared y~x = cor(x,y)^2
+```{r}
+cor(hv$`Market Value`,hv$`Square Feet`)
+cor(hv$`Market Value`,hv$`Square Feet`)^2
+```
+```{r}
+reg<-lm(`Market Value`~`Square Feet`,hv)
+summary(reg)
+```
+```{r}
+fitted(reg)
+plot(hv$`Square Feet`,hv$`Market Value`)
+abline(reg)
+```
+```{r}
+1-((42-1)/(42-1-1))*(1-0.5347)
+```
+```{r}
+anova(reg)
+```
+
+# regression diagnostics
+```{r}
+par(mfrow=c(2,2))
+plot(reg)
+```
+
+# Multiple regression 
+```{r}
+myData<-read_xlsx("Colleges and Universities.xlsx")
+options(scipen=999)
+Model <-lm(Earnings ~ Cost + Grad + Debt + City, data = myData)
+summary(Model)
+
+predict(Model, data.frame(Cost=25000, Grad=60, Debt=80, City=1), level=0.95, interval="confidence")
+
+predict(Model, data.frame(Cost=25000, Grad=60, Debt=80, City=1), level=0.95, interval="prediction")
+```
+
+
+
+```{r}
+cu<-read_xlsx("Colleges and Universities.xlsx", skip=2)
+reg2<-lm(`Graduation %`~`Median SAT`+`Acceptance Rate`+`Expenditures/Student`+`Top 10% HS`,cu)
+summary(reg2)
+```
+# Identifying the Best Regression Model (Exmple 8.13)
+```{r}
+ba<-read_xlsx("Banking Data.xlsx", skip=3)
+```
+
+```{r}
+reg3<-lm(Balance~Age+Education+Income+`Home Value`+Wealth,ba)
+summary(reg3)
+```
+
+```{r}
+reg4<-lm(Balance~Age+Education+Income+Wealth, ba)
+summary(reg4)
+```
+
+#------------------------------------Session 2----------------------
+
+# Multicollinearity - an example    
+```{r}
+library(tidyverse)
+library(readxl)
+options(scipen=100, digits=4)
+```
+```{r}
+cu<-read_xlsx("Colleges and Universities.xlsx", skip=2)
+hv<-read_xlsx("Home Market Value.xlsx", skip=2)
+```
+```{r}
+cor(cu %>% select(`Graduation %`,`Median SAT`,`Acceptance Rate`,`Expenditures/Student`,`Top 10% HS`))
+```
+```{r}
+cor(ba %>% select(Balance,Age,Education,Income,Wealth))
+```
+# Example 8.14
+```{r}
+reg4<-lm(Balance~Age+Education+Income+Wealth, ba)
+summary(reg4)
+```
+# w/o Wealth
+```{r}
+reg5<-lm(Balance~Age+Education+Income,ba)
+summary(reg5)
+```
+# w/o Education
+```{r}
+reg6<-lm(Balance~Age+Income,ba)
+summary(reg6)
+```
+# w/o Income
+```{r}
+reg7<-lm(Balance~Age+Education+Wealth,ba)
+summary(reg7)
+```
+
+# A Model with Categorical Variables (Example 8.15)
+```{r}
+sd<-read_xlsx("Employee Salaries.xlsx", skip=2)
+```
+```{r}
+reg8<-lm(Salary~Age+as.factor(MBA),sd)
+summary(reg8)
+```
+
+
+# A Model with Categorical Variables with 2 + levels
+```{r}
+is<-read_xlsx("Insurance Survey.xlsx", skip=2, n_max=25)
+```
+```{r}
+unique(is$Education)
+```
+```{r}
+is <- is %>% mutate(graduate_degree=ifelse(Education=="Graduate degree",1,0))
+is <- is %>% mutate(college_graduate=ifelse(Education=="College graduate",1,0))
+is %>% select(Education, graduate_degree, college_graduate)
+```
+
+# A Model with Categorical Variables with 2+ levels - Example 8.17
+
+```{r}
+sf<-read_xlsx("Surface Finish.xlsx", skip=2)
+```
+```{r}
+unique(sf$`Cutting Tool`)
+```
+```{r}
+sf <- sf %>% mutate(TypeB=ifelse(`Cutting Tool`=="B",1,0))
+sf <- sf %>% mutate(TypeC=ifelse(`Cutting Tool`=="C",1,0))
+sf <- sf %>% mutate(TypeD=ifelse(`Cutting Tool`=="D",1,0))
+sf %>% select(`Cutting Tool`, TypeB, TypeC, TypeD)
+```
+```{r}
+reg9<-lm(`Surface Finish`~RPM+TypeB+TypeC+TypeD,sf)
+summary(reg9)
+```
+```{r}
+reg10<-lm(`Surface Finish`~RPM+as.factor(`Cutting Tool`),sf)
+summary(reg10)
+```
+# Incorporating Interaction Terms in a Regression Model (Example 8.16)
+```{r}
+sd<-read_xlsx("Employee Salaries.xlsx", skip=2)
+```
+```{r}
+sd <- sd %>% mutate(MBA_bi=ifelse(MBA=="Yes",1,0))
+sd <- sd %>% mutate(Interaction=Age*MBA_bi)
+reg11<-lm(Salary~Age+MBA_bi+Interaction,sd)
+# reg11<-lm(Salary~Age+MBA_bi+Age*MBA_bi,sd)
+summary(reg11)
+```
+
+```{r}
+reg12<-lm(Salary~Age+Interaction,sd)
+summary(reg12)
+```
+
+# Regression Models with Nonlinear Terms
+
+```{r}
+Year <- c(1959, 1960, 1961, 1962, 1963, 1964, 1965, 1966, 1967, 1968, 1969)
+Population <- c(4835, 4970, 5085, 5160, 5310, 5260, 5235, 5255, 5235, 5210, 5175)
+sample1 <- data.frame(Year, Population)
+sample1$Year <- sample1$Year-1964
+```
+
+```{r}
+ggplot(sample1, aes(Year, Population)) +
+  geom_point() +
+  theme_classic()
+```
+#ploynomial regression 
+# The I() function treats the contents within the parentheses as an R expression.
+```{r}
+fit1 <- lm(Population ~ Year, data=sample1)
+fit2 <- lm(Population ~ Year + I(Year^2), data=sample1)
+fit3 <- lm(Population ~ Year + I(Year^2) + I(Year^3), data=sample1)
+summary(fit1)
+summary(fit2)
+summary(fit3)
+
+```
+```{r}
+ggplot(sample1, aes(Year, Population)) +
+  geom_point() +
+  geom_line(aes(y=predict(fit2))) +
+  theme_classic()
+```
+
+# Modeling Beverage Sales Using Curvilinear Regression  (Example 8.18)
+```{r}
+bs<-read_xlsx("Beverage Sales.xlsx", skip=2)
+```
+```{r}
+reg13<-lm(Sales~Temperature,bs)
+summary(reg13)
+```
+```{r}
+par(mfrow=c(2,2))
+plot(reg13)
+```
+```{r}
+reg14<-lm(Sales~Temperature+I(Temperature^2),bs)
+# reg14<-lm(Sales~Temperature+Temperature*Temperature,bs)
+summary(reg14)
+```
+```{r}
+par(mfrow=c(2,2))
+plot(reg14)
+```

@@ -1,0 +1,74 @@
+
+
+```{r}
+#install.packages("cowplot")   #only do this once
+#install.packages("ggplot2")   #only do this once
+#install.packages("tidyverse") #only do this once
+#install.packages("magick") #only do this once
+#install.packages("sp") #only do this once
+```
+
+```{r}
+library(ggplot2)              #needs to be done each r session
+library(tidyverse)            #needs to be done each r session
+library(cowplot)           
+```
+
+```{r}
+EUvax <- read.csv("EUvaccine.csv") #####this reads in the data file I made you will need to change the path to your computer
+View(EUvax)
+
+```
+
+```{r}
+##ggplot2 读取世界地图数据
+mapdata <- map_data("world") 
+View(mapdata)
+```
+
+
+```{r}
+##通过region将EUvax的数据添加到mapdata中 
+mapdata <- left_join(mapdata, EUvax, by="region")
+View(mapdata)
+```
+
+
+```{r}
+#筛选地图数据中，疫苗种植数不为空的那部分数据
+mapdata1<-mapdata %>% filter(!is.na(mapdata$Perc_vaccinated))
+View(mapdata1)
+```
+
+
+```{r}
+# 使用mapdata1画图，其中x轴为纬度，y为经度，能画出shape of country，以group进行分组，区分不同国家
+map1<-ggplot(mapdata1, aes( x = long, y = lat, group=group)) +
+  geom_polygon(aes(fill = Perc_vaccinated), color = "black")
+# 画出多边形，使用perc_vaccinated 的值进行填充，边界的颜色为黑色
+map1
+```
+
+
+```{r}
+# 改变地图1的变化方式，低为黄色，高位红色，na为灰色
+# 主题中x和y轴的文字不做更改，标记号不做更改，后面的矩形的各项元素也为空
+map2 <- map1 + scale_fill_gradient(name = "% vaccinated", low = "yellow", high =  "red", na.value = "grey50")+
+  theme(axis.text.x = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks = element_blank(),
+        axis.title.y=element_blank(),
+        axis.title.x=element_blank(),
+        rect = element_blank())
+map2
+```
+
+
+```{r}
+#添加一些图例
+ggdraw() +
+  draw_image("vac.jpg",  x = 0.4, y = 0.25, scale = .1) +
+  draw_plot(map2)
+
+
+```

@@ -1,0 +1,483 @@
+---
+title: "Week2_class"
+author: "Dr.Jingzhi Zhang"
+date: "2023-02-23"
+output: html_document
+---
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+```{r}
+library(tidyverse)
+```
+
+# If libray(tidyverse) does not work:
+```{r}
+library(dplyr)
+library(readr)
+```
+
+
+# Create a new object
+```{r}
+q<-1
+3->w
+r=5
+q
+w
+r
+```
+```{r}
+q       
+q<-"a"  
+q
+```
+
+# Delete an R object
+```{r}
+rm(w)
+```
+# Delete all objects R is currently using
+```{r}
+rm(list=ls())
+```
+
+# Arithmetic Operators 数学操作符
+```{r}
+a <- 5
+b <- 2
+```
+```{r}
+a + b
+```
+```{r}
+a - b
+```
+```{r}
+a * b
+```
+```{r}
+a / b
+```
+```{r}
+a ^ b
+```
+```{r}
+a %% b
+```
+```{r}
+a %/% b
+```
+
+# Logical Operators 逻辑操作符
+
+```{r}
+a < b
+a <= b
+a > b
+a >= b
+a == b
+a != b
+a>b | a==b
+a>b & a==b
+
+```
+
+# Major Data Types in R
+
+```{r}
+q <- 1                  # Numbers
+q
+w <- "hello, world!"    # Characters
+w
+r <- 1>2                # Logic
+r
+t <- NA                 # NA (missing)
+t
+```
+
+# Vector 向量 and Matrix 矩阵;C is an abbreviation of combine
+
+```{r}
+c <- c(1,3,5)
+d <- c(2,4,6)
+e <- c(1,3,5,6)
+c
+d
+c+d
+c-e
+```
+
+# cbind:column bind/rbind: row bind; nomally the bind of vectors requires the vectors have the same numbers of rows or columns
+```{r}
+f<-cbind(c(1,3,5),c(2,4,6))
+f
+g<-rbind(c(1,3,5),c(2,4,6))
+g
+h<-cbind(c(1,3,5),c(2,4,6,5))
+h
+```
+
+# how to select or search a value in a vector / matrix.
+# use [] (brakets) without any value to select all the values of a vector
+# use : (colon) to select consecutive rows and/or columns
+# use c() to select non-consecutive rows and/or columns
+```{r}
+f
+f[1,2]
+
+f[1,]
+
+f[,2]
+f[1:3,1]
+f[c(1,3),1]
+```
+
+# how to change a value in the vector
+```{r}
+f[1,1]<-10
+f
+```
+
+```{r}
+help(colnames)
+
+g
+colnames(g) <- c("C1","C2","C3")
+g
+rownames(g) <- c("R1","R2")
+g
+colnames(g)[1] <- c("X1")
+rownames(g)[2] <- c("Z2")
+g
+```
+
+```{r}
+g[,"C3"]
+g["R1","C3"]
+```
+
+# List; how to create a list
+```{r}
+i <- rbind(c(1,2,3),c(4,5,6))
+j <- c("a","b","c","d")
+k <- c
+
+l <- list(i=i,j=j,k=k)
+l
+```
+
+```{r}
+l[2]
+l$j
+
+l[c(1,3)]
+l$i[1,3]
+```
+
+# Dataframe 表格型数据结构
+# 1. we made a dataframe that consists of number，age，and name columns.
+# 2. print the data frame
+# 3. Select and show "name"
+# 4. select and show "name"when No<3
+# 5. select and show all the records when age equals to 20
+```{r}
+df <- data.frame("no"=1:3, "age"=c(20,22,19),"name"=c("Rita","Sam","John")) 
+df
+
+df["name"]
+df$name[df$no<3]
+df[df$age==20,]
+```
+
+--------------------Data Inspection and Data Prepartion-------------
+# Example 2.1
+# Import the Gig data file into a data frame (table) and label it myData
+```{r}
+library(readxl) # required package
+myData <- read_xlsx("Class.xlsx","Gig")
+```
+
+```{r}
+dim(myData) # returns the dimension (e.g. the number of columns and rows) of a matrix, array or dataframe. 
+head(myData) # display the head row
+View(myData) # view the dataframe
+
+```
+# display the names of each column
+```{r}
+names(myData)
+```
+
+# check the classifcation of variables
+```{r}
+str(myData)
+```
+
+```{r}
+length(which(myData$Industry=='Automotive')) #gets or sets the length of a vector (list) or other objects
+length(which(myData$HourlyWage > 30))
+length(which(myData$Industry=='Automotive' & myData$HourlyWage > 30))
+```
+
+#We use the order function to sort the observations of a variable. In order to sort the HourlyWage variable and store the ordered data set in a new data frame called sortedData1,
+```{r}
+sortedData1 <- myData[order(myData$HourlyWage),]
+View(sortedData1)
+sortedData1 <- myData[order(myData$HourlyWage, decreasing = TRUE),]
+```
+
+#Sort using multiple variables
+```{r}
+sortedData2 <- myData[order(myData$Industry, myData$Job, myData$HourlyWage),]
+View(sortedData2)
+```
+
+#To sort the data by industry and job classification in ascending order and then by hourly wage in descending order,
+```{r}
+sortedData3 <- myData[order(myData$Industry, myData$Job, -myData$HourlyWage),]
+View(sortedData3)
+```
+#xtfrm function, which converts non-numerical values into integers
+```{r}
+sortedData4 <- myData[order(-xtfrm(myData$Industry), myData$Job, myData$HourlyWage),]
+View(sortedData4)
+```
+#all in decending order 
+```{r}
+sortedData5 <- myData[order(myData$Industry, myData$Job, myData$HourlyWage, decreasing = TRUE),]
+View(sortedData5)
+
+write.csv(sortedData5,"sortedData5.csv")
+# The output file will be created in the project folder
+```
+
+# Example 2.2
+# Import the Restaurant_Reviews data file into a data frame (table) and label it myData1
+
+```{r}
+myData1 <- read_xlsx("Class.xlsx","Review") #read data
+is.na(myData1) #detect missing values in a data set
+is.na(myData1$Service) # detect missing value in servie column
+myData1[complete.cases(myData1), ] #identify observations without missing values
+myData1[!complete.cases(myData1), ] #identify observations with missing values
+omissionData <- na.omit(myData1) # remove observations with missing values and store the resulting data set in the omissionData data frame.
+View(omissionData)
+```
+#generate mean of a column and replace the column
+```{r}
+ambienceMean <- mean(myData1$Ambience, na.rm = TRUE) #na.rm if no available, remove
+serviceMean <- mean(myData1$Service, na.rm = TRUE) 
+myData1$Ambience[is.na(myData$Ambience)] <- ambienceMean
+myData1$Service[is.na(myData$Service)] <- serviceMean
+```
+
+# Example 2.3
+# Import the Customers data file into a data frame (table) and label it myData.
+```{r}
+library(readxl) # required package
+myData2 <- read_xlsx("Class.xlsx","Customers")
+```
+
+
+```{r}
+college <- myData2[myData2$College=='Yes', ] #we first select all customers with a college degree
+college$BirthDate <- as.Date(college$BirthDate, format = "%m/%d/%Y") #convert the BirthDate variable into the date data type. 
+cutoffdate1 <- as.Date("01/01/1982", format = "%m/%d/%Y")
+cutoffdate2 <- as.Date("12/31/1999", format = "%m/%d/%Y")
+millenials <- college[college$BirthDate >= cutoffdate1 & college$BirthDate <= cutoffdate2, ] #set the condition
+```
+
+#Subsetting
+```{r}
+subset1 <- millenials[ , c(2,6,8,10,11,14)]
+subset2 <- millenials[ , c("Sex", "HouseholdSize", "Income", "Spending2020", "NumOfOrders", "Channel")] #select columns
+
+subset1$Sex <- as.factor(subset1$Sex) #convert Sex and Channel into categorical variables (called factors in R) by
+subset1$Channel <- as.factor(subset1$Channel)
+is.factor(subset1$Channel) #To verify that the Channel variable has been converted into a factor
+
+sex <- split(subset1, subset1$Sex) #create two subsets of data based on Sex,
+sex$Female
+sex$Male
+View(sex$Female)
+View(sex$Male)
+dataRanges <- myData[c(1:50, 101:200),]
+```
+
+
+
+# Example 2.4 Load Data 读取数据
+```{r}
+dt <- read_csv("donations.csv")
+```
+
+
+# Subsetting 提取dataframe的子集
+```{r}
+dt[2,]
+```
+
+# Subsetting 提取行
+
+```{r}
+dt[2:5,]
+```
+# 提取2-5行
+
+```{r}
+dt[c(1,3,5), ]
+```
+# 提取1\3\5行
+
+```{r}
+dt[,3]
+```
+# 提取第3列
+
+```{r}
+dt["donor_id"]
+```
+# extract donor_id
+
+```{r}
+dt %>% 
+  filter(days_after_posting > 150)
+```
+# filter the records from the dataframe when days after posting>150
+
+```{r}
+dt %>% 
+  select(id, donation_id)
+```
+# select中id 和 捐赠者ID列
+
+# Pipe Operator %>%
+```{r}
+set.seed(1)             # Set a seed for generating a random values
+n1<-rnorm(10000)
+n2<-abs(n1)*50          # abs() gives absolute values
+n3<-matrix(n2,ncol=100) # convert a vector that has 10000 values into a 100*100 matrix
+n4<-round(rowMeans(n3)) # take a mean of each row of n3 then round to integer values; a 1*100 matrix
+hist(n4%%7)             # draw a histogram of n4 mod 7n
+```
+# Pipe Operator %>%
+# The above code can be shortend by using %>%
+```{r}
+set.seed(1)             
+rnorm(10000) %>%
+  abs %>% "*" (50)    %>%
+  matrix(ncol=100)    %>%
+  rowMeans %>% round  %>%
+"%%" (7) %>% hist
+```
+
+# arrange() sorts rows in data by using the values of given column (variable)
+
+```{r}
+dt %>% head()
+```
+```{r}
+dt %>% arrange(id)
+```
+```{r}
+dt %>% arrange(desc(id))
+```
+
+
+```{r}
+mean(dt$base_amount)
+```
+# $ can help extract the column 
+
+```{r}
+dt %>%  
+  summarise(mean(base_amount))
+```
+# summarise 统计描述
+
+# By default, sumarise will aggregate values of each column in a dataset
+```{r}
+dt %>%  
+select_if(is.numeric) %>%
+  summarize_all(na.rm=TRUE,list(mean=mean,sum=sum,sd=sd))
+```
+
+# Group by can be used to summarize the data frame under the specific conditions
+# R method: aggregate()
+```{r}
+aggregate(cbind(base_amount,total_amount) ~ dollar_amount, data=dt, mean, na.rm=TRUE)
+```
+
+# dply method: group_by() with summarize(); Some non-dplyr R functions are not compatible with group_by(); Please use ungroup(dataframe) after finished using group_by()
+```{r}
+dt %>%  
+group_by(dollar_amount) %>%
+  summarize(meanofbase=mean(base_amount,na.rm=TRUE),meanoftotal=mean(total_amount,na.rm=TRUE)) %>% ungroup()          
+```
+
+# mutate() adds new variables and preserves existing ones
+```{r}
+dt <- dt %>% mutate(percent_donations_after=project_donations_to_date/project_requested*100)
+dt %>% select(c("project_donations_to_date","project_requested","percent_donations_after")) %>% head()
+```
+
+# transmute() adds (a) new variable(s) and drops existing variables in the dataset
+```{r}
+dt2 <- dt %>% transmute(percent_donations_after=project_donations_to_date/project_requested*100)
+dt2 
+```
+
+# mutate() and transmute() can be used with group_by() & ungroup()
+```{r}
+dt <- dt %>% 
+  group_by(project_id) %>% 
+  mutate(avg_total_amount=mean(total_amount)) %>% 
+  ungroup()
+
+dt %>% select(donor_id, project_id, total_amount, avg_total_amount) %>% filter(project_id==3425)
+```
+#Always ungroup() when you’ve finished with your calculations.
+```{r}
+dt <- dt %>% group_by(project_id) %>% mutate(avg_total_amount=mean(total_amount)) %>% ungroup()
+dt %>% select(donor_id, project_id, total_amount, avg_total_amount) %>% filter(project_id==3425)
+
+```
+
+
+# mutate() and group_by() can be used for creating unique ID for each row / observation；
+# n()： calculates the total number of observations
+# 1:n() of the dplyr package is used along with mutate function in order to generate the row number as follows
+```{r}
+dt <- dt %>% 
+  group_by(project_id) %>% 
+  arrange(timestamp, .by_group = TRUE) %>% 
+  mutate(pd_id=1:n()) %>% #generate pd_id from 1 to n()
+  ungroup()
+dt %>% select(project_id, timestamp, pd_id) %>% 
+  filter(project_id==3425)
+```
+
+# Export text data / outputs
+# If you seek to read / write multiple files with R, please see: https://theautomatic.net/2018/07/11/manipulate-files-r/
+```{r}
+dt2<- dt %>% select(donor_id, project_id, timestamp,total_amount) %>% head()
+
+write.csv(dt2, file="test1.csv")    # Save as .csv format
+
+library(openxlsx)
+write.xlsx(dt2, "test1.xlsx")       # Save as .xlsx format
+```
+
+# Export graphical outputs
+```{r}
+png(filename="test.png", width=1024, height=768)
+plot(x = 1:10, 
+     y = 1:10)
+dev.off()
+```
+
+

@@ -1,0 +1,279 @@
+---
+title: "Week 3 Tutorial and Bonus"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+  word_document: default
+---
+
+```{r}
+library(tidyverse)
+library(knitr)
+options("scipen"=100, "digits"=4)
+```
+
+```{r}
+rm(list = ls())
+dt <- read_csv("projects.csv")
+```
+
+```{r}
+dt %>%
+  select(id, grade_level, poverty_level)
+```
+# Contingency Table 列联表
+
+```{r}
+dt %>%
+  select(grade_level, poverty_level) %>%
+  table()
+```
+
+```{r}
+dt %>%
+  select(grade_level, poverty_level) %>%
+  table() %>%
+  prop.table()
+```
+
+```{r}
+dt %>%
+  select(poverty_level, resource_type, grade_level) %>%
+  table()
+```
+
+```{r}
+dt %>%
+  select(grade_level, poverty_level) %>%
+  filter(poverty_level != "unknown") 
+```
+
+# Pivot Table
+```{r}
+library(rpivotTable)
+dt %>% 
+  filter(poverty_level != "unknown")  %>%
+  filter(is.na(grade_level)==FALSE)    %>%
+  rpivotTable(rows=c("grade_level"), cols=c("poverty_level"))
+```
+
+# Measures of location: Application
+```{r}
+library(modeest)
+```
+
+
+# Measures of location: Application - Repair time
+```{r}
+library(readxl)
+repair<-read_excel("Computer Repair Times.xlsx", skip=2,sheet=1)
+repair <- repair %>% rename(time = `Repair Time (Days)`)
+```
+
+
+```{r}
+repair %>% 
+  ggplot(aes(x=time)) +
+  geom_histogram(binwidth = 1) +
+  theme_classic()
+```
+```{r}
+repair %>%
+  group_by(time) %>%
+  summarise(count = n()) %>% 
+  arrange(time) %>%
+  mutate(cum_freq = cumsum(count)) %>%
+  mutate(cum_freq = cumsum(count), rel_cum_freq = cum_freq/sum(count)) %>%
+  ungroup()
+```
+
+# Measures of disperson - variance and standard deviation
+```{r}
+#library(readxl)
+stock<-read_excel("Closing Stock Prices.xlsx",skip=2)
+head(stock) # Name of the last column contains special characters, but this only can be checked in R console!
+stock<- stock %>% rename(`DJ Industrials Index`=`DJ Industrials \r\nIndex`)
+```
+
+
+# Computing z-Score
+```{r}
+dt2 <- stock %>% mutate(`IBM: z-score`=(`IBM`-mean(`IBM`))/sd(`IBM`))
+head(dt2)
+```
+
+# Skewness
+```{r}
+mean((dt2$`IBM`-mean(dt2$`IBM`))^3)/sd(dt2$`IBM`)^3
+
+library(psych) # Need to use skew() in psych package
+skew(dt2$`IBM`)
+```
+
+# Kurtosis
+```{r}
+# 3 is deducted from the eq. because kurtosis for a z-dist is 3
+(mean((dt2$`IBM`-mean(dt2$`IBM`))^4)/sd(dt2$`IBM`)^4)-3
+
+kurtosi(dt2$`IBM`)
+```
+
+# Descriptive statistics
+```{r}
+#library(psych)
+describe(dt2$`IBM`)
+describe(dt2$`CSCO`)
+
+```
+
+# Descriptive Statistics for Grouped Data
+```{r}
+dt %>%
+  rename(size = total_price_excluding_optional_support) %>%
+  group_by(poverty_level) %>%
+  summarise(mean(size), median(size), var(size), sd(size), max(size), min(size))
+```
+
+```{r}
+library(psych)
+describeBy(dt$total_price_excluding_optional_support, group=dt$poverty_level)
+```
+# proprotion is commonly used to deal with categorical data
+```{r}
+dt %>%
+  group_by(poverty_level) %>%
+  summarise(n = n()) %>%
+  mutate(prop = n / sum(n))
+```
+
+# Boxplot
+```{r}
+boxplot(dt2$`IBM`)
+```
+```{r}
+boxplot(students_reached~poverty_level,data=dt)
+```
+
+# Covariance
+```{r}
+dt %>%
+  filter(total_price_including_optional_support < 3000) %>%
+  ggplot(aes(total_price_including_optional_support, total_donations)) +
+  geom_point(size=0.5) +
+  theme_classic() +
+  xlab("Requested") +
+  ylab("Donated")
+```
+
+# Use: an optional character string giving a method for computing covariances in the presence of missing values. This must be (an abbreviation of) one of the strings "everything": NAs will propagate conceptually, 
+#"all.obs" = the presence of missing observations will produce an error, 
+#"complete.obs"= missing values are handled by casewise deletion, 
+#"na.or.complete" = the same unless there are no complete cases, or 
+#"pairwise.complete.obs" = the correlation or covariance between each pair of variables is computed using all complete pairs of observations on those variables.
+
+```{r}
+cov(dt$total_price_including_optional_support,dt$total_donations, use="complete.obs")
+```
+
+
+# Correlation
+# method: a character string indicating which correlation coefficient (or covariance) is to be computed. One of "pearson" (default), "kendall", or "": can be abbreviated.
+```{r}
+cor(dt$total_price_including_optional_support, dt$total_donations, use="complete.obs", method = "pearson")
+```
+
+```{r}
+cor(dt$total_price_including_optional_support, dt$total_donations, use="complete.obs", method = "spearman")
+```
+
+```{r}
+cor(dt$total_price_including_optional_support, dt$total_donations, use="complete.obs", method = "kendall")
+```
+
+```{r}
+#library(psych)
+corr.test(dt %>% select(students_reached, total_donations, num_donors, total_limited_base))
+```
+
+# Save correlation matrix by using pander package
+```{r}
+# install.packages("pander")
+library("pander")
+
+# save your date in a file
+mycorrelation <- psych::corr.test(dt %>% select(students_reached, total_donations, num_donors))
+
+#Prints an R object in Pandoc's markdown
+mycorrelation$r %>%
+  pander(caption="The table of the correlation matrix.")
+
+write.csv(mycorrelation$r, file="mycorrelation-r-values.csv")
+```
+
+```{r}
+mycorrelation
+```
+
+
+
+```{r}
+library(GGally)
+```
+```{r}
+dt %>% 
+  select(students_reached, total_donations, num_donors, total_limited_base) %>% 
+# A matrix of scatterplots is produced.
+  pairs
+```
+
+```{r}
+corPlot(dt %>% select(students_reached, total_donations, num_donors, total_limited_base))
+```
+```{r}
+# Factors are used to represent categorical data. Factors can be ordered or unordered and are an important class for statistical analysis and for plotting.
+dt %>% 
+  select(students_reached, total_donations, num_donors, total_limited_base) %>%
+  GGally::ggpairs()
+
+```
+```{r}
+library("corrgram")
+
+dt %>% 
+  select(students_reached, total_donations, num_donors, total_limited_base) %>%
+ corrgram(lower.panel=corrgram::panel.ellipse,
+         upper.panel=panel.cor,
+         diag.panel=panel.density)
+```
+# Correlation Heatmap
+```{r}
+ggcorr(dt %>% select(students_reached, total_donations, num_donors, total_limited_base), digits = 12, label = TRUE, name = "Correlations", label_alpha = TRUE)
+```
+
+
+# Explore the outliers
+
+```{r}
+dt %>%
+  sample_n(100) %>%
+  ggplot(aes(total_price_excluding_optional_support, total_donations)) +
+  geom_point() +
+  theme_classic()
+```
+
+
+```{r}
+dt %>%
+  sample_n(100) %>%
+  select(total_price_excluding_optional_support) %>%
+  mutate(z_score = (total_price_excluding_optional_support - mean(total_price_excluding_optional_support)) / sd(total_price_excluding_optional_support)) %>%
+  filter(z_score > 3)
+```
+
+
+
+
+
+
+

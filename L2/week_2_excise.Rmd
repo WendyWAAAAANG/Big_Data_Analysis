@@ -1,0 +1,96 @@
+---
+title: "week2-excise solutions"
+author: "Jingzhi"
+date: "2022/2/19"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+```
+
+# If libray(tidyverse) does not work:
+```{r}
+library(dplyr)
+library(readr)
+```
+
+
+```{r}
+my_list <- list(
+  fruits = c("apple", "banana", "orange"),
+  numbers = c(10, 20, 30),
+  logicals = c(TRUE, FALSE, TRUE)
+
+)
+my_list
+```
+
+```{r}
+my_data <- data.frame(
+  Name = c("John", "Emily", "Michael"),
+  Age = c(25, 30, 35),
+  Married = c(TRUE, FALSE, TRUE)
+)
+my_data
+```
+
+
+```{r}
+age<-c(23, 25, 21, 29, 32, 13)
+age[c(1:3,6)]
+mean(age)
+median(age)
+min(age)
+max(age)
+```
+
+# Load Data
+```{r}
+dt <- read.csv("projects.csv")
+
+```
+```{r}
+str(dt)
+```
+
+```{r}
+aggregate(sales_tax ~ poverty_level=="high", data=dt ,mean, na.rm=TRUE)
+```
+
+```{r}
+dt2<- dt%>%
+  filter(poverty_level=="high") %>%
+  summarise(meanbygroup=mean(sales_tax,na.rm=TRUE)) %>%
+  ungroup()
+```
+```{r}
+summary(dt)
+```
+
+
+
+```{r}
+
+dt3 <- dt %>% 
+group_by(teacher_id) %>%   
+arrange(date_ended) %>% 
+mutate(project_no = 1:n()) %>% 
+ungroup()
+
+
+```
+```{r}
+dt3 %>% select(project_id,teacher_id,project_no) %>% filter(teacher_id == 1133)
+
+```
+```{r}
+ts <- dt3 %>% 
+filter(funding_status=="completed") %>% 
+group_by(teacher_id,poverty_level) %>% summarise(avg_donors_completed=mean(num_donors)) %>%  ungroup()
+ts
+summary(ts)
+```
+
+
+

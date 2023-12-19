@@ -1,0 +1,237 @@
+---
+title: "Donorschoose Dashboard"
+output: 
+  flexdashboard::flex_dashboard:
+    vertical_layout: scroll 
+    #垂直结构使用下滑结构
+    theme: yeti
+    #大家也可以尝试不同的主题
+---
+
+
+```{r setup, include=FALSE}
+# Importing libraries
+library(flexdashboard)
+library(tidyverse)
+library(highcharter)
+library(gt)
+library(htmltools)
+library(viridis)
+```
+
+
+```{r}
+# Importing data
+df <- read_csv('projects.csv')
+
+# Removing duplicates
+df <- df %>% 
+  distinct(teacher_id, .keep_all = TRUE)
+  # 根据教师的id列删除重复行，保留其他所有的数据
+
+```
+
+```{r}
+# Importing second data
+data <- read_csv('donors.csv')
+
+
+```
+
+
+Projects {data-orientation=rows}
+=======================================================================
+
+## Row 1 {data-height=30}
+
+Column {.tabset .tabset-fade data-width=650}
+-----------------------------------------------------------------------
+
+### Most Popular Projects {data-height=600}
+
+```{r fig.height=5}
+# Colors
+custom_colors <- viridis::mako(n = 4)
+
+# Most popular projects by students_reached
+df %>% 
+  group_by(resource_type) %>%  #对数据进行分组 
+  summarise(students_reached = max(students_reached)) %>%  #求最大值
+  arrange(desc(students_reached)) %>%  #根据最大值进行降序排序
+  head(4) %>%  #取前四个
+  
+  # 图形设定
+  hchart('column', hcaes(x = resource_type, y = students_reached, color = custom_colors)) %>%   hc_add_theme(hc_theme_google()) %>% 
+  # 设定鼠标交互项
+   hc_tooltip(pointFormat = '<b>Number of Students Reached: </b> {point.y} <br>') %>% 
+  hc_title(text = 'Most Popular Projects',
+           style = list(fontSize = '25px', fontWeight = 'bold')) %>% 
+  hc_subtitle(text = 'By Number of Students Reached',
+              style = list(fontSize = '16px')) %>% 
+  hc_credits(enabled = TRUE, text = '@jingzhizhang')
+  
+
+```
+
+### Most Popular Schools {data-height=600}
+
+```{r fig.height=5}
+# Colors 选择颜色
+custom_colors <- viridis::plasma(n = 15)
+
+# Most popular school by students_reached
+df %>% 
+  arrange(desc(students_reached)) %>% 
+  head(15) %>% 
+  # desc = descending 对students_reached 进行降序处理后排序的数据框，选择前15个值
+  hchart('bar', hcaes(x = school_name, y = students_reached, color = custom_colors)) %>% 
+  # 画条形图，x为学校名，y为资助的学生数
+  
+  hc_add_theme(hc_theme_google()) %>% 
+  #主题选择，可以换hc_theme_flat()，hc_theme_chalk()，hc_theme_handdrawn()等试试
+  
+  hc_tooltip(pointFormat = '<b>Number of students reached: </b> {point.y} <br>') %>% 
+  #鼠标交互时，出现“number of students reached： y"
+  
+  hc_title(text = 'Most Popular School',
+           style = list(fontSize = '25px', fontWeight = 'bold')) %>% 
+  # 主标题 字体大小25px，字体加粗
+  hc_subtitle(text = 'By Number of Students Reached',
+              style = list(fontSize = '16px')) %>% 
+  # 副标题字体大小16px
+  
+  hc_credits(enabled = TRUE, text = '@jingzhizhang')
+  # 生成作者栏
+```
+
+### {.no-padding}
+
+Column {data-width=350}
+-----------------------------------------------------------------------
+
+### {.no-padding data-height=350}
+
+```{r}
+# Colors
+custom_colors <- viridis::mako(n = 2)
+
+# Most common genre
+df %>% 
+  group_by(resource_usage) %>% 
+  summarise(count = n()) %>%  #n()这个函数即为count，数每个类别的数量
+  hchart('pie', hcaes(x = resource_usage, y = count, color = custom_colors)) %>% 
+  hc_add_theme(hc_theme_google()) %>% 
+  hc_tooltip(pointFormat='<b>Proportion: </b> {point.percentage:.2f}%') %>%       
+  #显示格式是2位的浮点小数
+  hc_title(text = 'Most Common Usage',
+           style = list(fontSize = '15px', fontWeight = 'bold')) %>% 
+  hc_credits(enabled = TRUE, text = '@jingzhi')
+```
+
+### {.no-padding data-height=350}
+
+```{r}
+# 制定一个评价的标准
+df2 <- df %>% 
+  filter(total_price_including_optional_support >= 8000) %>% 
+  arrange(desc(students_reached)) %>% 
+  select(project_id, school_name, poverty_level,grade_level)
+
+# HTML table  gt用于生成表格，表格generate table
+
+div(style = 'height:600px; overflow-y:scroll', gt(df2) %>% 
+      tab_header(title = md('Most Successful Projects from 2019 to 2020'),
+                 subtitle = md('By Amount')) %>% 
+#定义标题名
+      opt_table_font(font = list(google_font('Chivo'), default_fonts())) %>%
+#定义图表字体
+      tab_style(location = cells_column_labels(columns = everything()),
+                style = list(cell_borders(sides = 'bottom', 
+                                          weight = px(2)), 
+                             cell_text(weight = 'bold'))) %>% 
+#定义单元格格式，边界加粗，大小要能显示全部文字内容等
+      tab_options(table.font.size = px(12L),
+                  table.border.top.style = 'none',
+                  column_labels.border.bottom.width = 2,
+                  table_body.border.top.style = 'none',
+                  data_row.padding = px(3))
+
+#定义表格格式，如字体大小等，每行的行距为3px
+    )
+
+
+```
+
+Donors {data-orientation=rows}
+=======================================================================
+
+## Row 1 {data-height=50}
+-----------------------------------------------------------------------
+
+# Row 2 {data-height=600}
+-----------------------------------------------------------------------
+
+### Where the Donations Comes From {data-width=500 data-height=600}
+
+```{r fig.height=5}
+# Removing duplicates and select the max value
+data1 <- data %>% 
+  group_by(state, is_teacher_acct) %>% 
+  summarise(sum_total = mean(sum_total))
+
+# Colors
+custom_colors <- viridis::mako(n = 10)
+
+# Where the Major Contribution Comes From
+data1 %>% 
+  arrange(desc(sum_total)) %>% 
+  head(10) %>% 
+  hchart('lollipop', hcaes(x = state, y = sum_total, color = custom_colors)) %>% 
+  hc_add_theme(hc_theme_google()) %>% 
+  hc_tooltip(pointFormat = '<b>Amounts of Dollars: </b> {point.y} <br>') %>% 
+  hc_yAxis(title = list(text = 'Total Donations')) %>% 
+  hc_xAxis(title = list(text = 'States')) %>% 
+  hc_title(text = 'Most Generous State',
+           style = list(fontSize = '25px', fontWeight = 'bold')) %>% 
+  hc_subtitle(text = 'By Total Donations',
+              style = list(fontSize = '16px')) %>% 
+  hc_credits(enabled = TRUE, text = '@jingzhizhang')
+```
+
+### Ranking List of Donors {data-width=500 data-height=600}
+
+
+```{r fig.height=5}
+
+# 制定一个评价的标准
+df3 <- data %>% 
+  filter(num_projects >= 500) %>% 
+  arrange(desc(total_donations)) %>% 
+  select(id, city, state,total_donations)
+
+# HTML table  gt用于生成表格 generate table
+
+div(style = 'height:600px; overflow-y:scroll', gt(df3) %>% 
+      tab_header(title = md('Rank List of Donors from 2020 to 2021'),
+                 subtitle = md('By Total Donations')) %>% 
+#定义标题名
+  
+      opt_table_font(font = list(google_font('Chivo'), default_fonts())) %>%
+#定义图表字体
+  
+      tab_style(location = cells_column_labels(columns = everything()),
+                style = list(cell_borders(sides = 'bottom', 
+                                          weight = px(2)), 
+                             cell_text(weight = 'bold'))) %>% 
+#定义单元格格式，边界加粗，大小要能显示全部文字内容等
+  
+      tab_options(table.font.size = px(12L),
+                  table.border.top.style = 'none',
+                  column_labels.border.bottom.width = 2,
+                  table_body.border.top.style = 'none',
+                  data_row.padding = px(3))
+
+#定义表格格式，如字体大小等，每行的行距为3px
+    )
+
+```

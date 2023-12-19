@@ -1,0 +1,230 @@
+---
+title: "Week 5 Material"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+```{r}
+library(tidyverse)
+library(readxl)
+library(knitr)
+library(psych)
+options("scipen"=100, "digits"=4)
+```
+
+## if the above is not working:
+```{r}
+library(dplyr)
+library(readr)
+library(readxl)
+library(ggplot2)
+```
+
+# Computing Probabilities with Standard Normal Tables
+# The distribution for customer demand (units per month) is normal with: mean=750 stdev.=100
+# (a) what is the probability  that demand will be at least 900 units/month?
+```{r}
+pnorm(900, 750, 100)
+```
+# (b) Probability that demand will exceed 700 units, or P(X>700).
+```{r}
+1-pnorm(700,750,100)
+```
+
+# (c) Probability that demand will be between 700 and 900, or P(700<X<900).
+```{r}
+pnorm(900,750,100)-pnorm(700,750,100)
+```
+
+# Examples of Using R to plot probability distribution
+# 1. Plot the standard normal curve on the interval [–3,3] 
+```{r}
+# seq Generate regular sequences.
+x <- seq(from = -3, to = 3, by = 0.1)
+
+y = dnorm(x)
+data <- data.frame(x = x, y=y)
+ggplot(data, aes(x, y)) +
+geom_line() +
+labs(x = "Normal Deviate",
+y = "Density") +
+# A function that takes the limits as input and returns breaks as output 
+scale_x_continuous(breaks = seq(-3, 3, 1))
+```
+# 2. What is the area under the standard normal curve to the left of z=1.96?
+```{r}
+#by default mean=0 sd=1
+pnorm(1.96,mean=0,sd=1)
+```
+# 3. What is the value of the 90th percentile of a normal distribution with a mean of 500 and a standard deviation of 100?
+```{r}
+qnorm(.9, mean=500, sd=100)
+```
+
+# 4. Generate 50 random normal deviates with a mean of 50 and a standard deviation of 10.
+# Each time you generate pseudo-random deviates, a different seed, and therefore different results, are produced. To make your results reproducible, you can specify the seed explicitly, using the set.seed()
+```{r}
+set.seed(1234) 
+x <- rnorm(50, mean=50, sd=10)
+x
+```
+
+# Analyzing Airline Passenger Data
+```{r}
+air<-read_excel("Airline Passengers.xlsx", range="Data!A3:A28")
+```
+```{r}
+hist(air$`Sample Data`)
+```
+```{r}
+describe(air$`Sample Data`)
+```
+# Goodness of Fit
+```{r}
+dt <- read_csv("projects.csv")
+```
+
+```{r}
+dt %>%
+filter(total_price_excluding_optional_support<2000) %>%
+ggplot(aes(x=total_price_excluding_optional_support)) +
+  geom_histogram() +
+  theme_classic()
+```
+```{r}
+dt %>%
+  filter(total_price_excluding_optional_support < 2000) %>%
+  ggplot(aes(total_price_excluding_optional_support)) +
+  geom_density() +
+  theme_classic()
+```
+
+检测样本是否来源于服从某个特定理论概率分布的总体(population）。原理是将empirical cumulative distribution function  (ECDF) 和任意理论分布的(CDF)进行比较。只适用于连续变量。
+
+原假设H0: 样本来自于给定的理论概率分布 The data follow the specific distribution
+
+备择假设H1：样本不属于理论的概率分布 The data do not follow the specific distribution
+
+```{r}
+ks.test(dt$total_price_excluding_optional_support,"pnorm")
+```
+```{r}
+shapiro.test(sample(dt$total_price_excluding_optional_support, 5000))
+```
+#we reject the null hypothesis. We have sufficient evidence to say that the sample data does not come from a normal distribution.
+
+
+
+```{r}
+dt %>%
+  filter(total_price_excluding_optional_support < 2000) %>%
+  ggplot(aes(total_price_excluding_optional_support)) +
+  geom_density() +
+  theme_classic()
+```
+
+
+```{r}
+dt %>%
+  filter(total_price_excluding_optional_support < 2000) %>%
+  ggplot(aes(sample=total_price_excluding_optional_support)) +
+  stat_qq() +
+  stat_qq_line() +
+  theme_classic()
+```
+
+
+# Sampling experiment in R
+```{r}
+set.seed(12345)
+
+sample10 <- matrix(ncol=25, nrow=10)
+sample25 <- matrix(ncol=25, nrow=25)
+sample100 <- matrix(ncol=25, nrow=100)
+sample500 <- matrix(ncol=25, nrow=500)
+
+for(i in 1:25){
+  sample10[,i] <- runif(10,0,10)
+  sample25[,i] <- runif(25,0,10)
+  sample100[,i] <- runif(100,0,10)
+  sample500[,i] <- runif(500,0,10)
+}
+```
+
+
+```{r}
+hist(sample10)
+hist(colMeans(sample10))
+mean(colMeans(sample10))
+sd(colMeans(sample10))
+mean(colMeans(sample10))-sd(colMeans(sample10))*3
+mean(colMeans(sample10))+sd(colMeans(sample10))*3
+(mean(colMeans(sample10))+sd(colMeans(sample10))*3)-(mean(colMeans(sample10))-sd(colMeans(sample10))*3)
+```
+
+```{r}
+hist(sample25)
+hist(colMeans(sample25))
+mean(colMeans(sample25))
+sd(colMeans(sample25))
+mean(colMeans(sample25))-sd(colMeans(sample25))*3
+mean(colMeans(sample25))+sd(colMeans(sample25))*3
+(mean(colMeans(sample25))+sd(colMeans(sample25))*3)-(mean(colMeans(sample25))-sd(colMeans(sample25))*3)
+```
+
+
+```{r}
+hist(sample100)
+hist(colMeans(sample100))
+mean(colMeans(sample100))
+sd(colMeans(sample100))
+mean(colMeans(sample100))-sd(colMeans(sample100))*3
+mean(colMeans(sample100))+sd(colMeans(sample100))*3
+(mean(colMeans(sample100))+sd(colMeans(sample100))*3)-(mean(colMeans(sample100))-sd(colMeans(sample100))*3)
+```
+
+```{r}
+hist(sample500)
+hist(colMeans(sample500))
+mean(colMeans(sample500))
+sd(colMeans(sample500))
+mean(colMeans(sample500))-sd(colMeans(sample500))*3
+mean(colMeans(sample500))+sd(colMeans(sample500))*3
+(mean(colMeans(sample500))+sd(colMeans(sample500))*3)-(mean(colMeans(sample500))-sd(colMeans(sample500))*3)
+```
+
+# Confidence Interval for the Mean with Known Population Standard Deviation
+```{r}
+796 + qnorm(1-(0.05)/2) * (15/sqrt(25))
+796 - qnorm(1-(0.05)/2) * (15/sqrt(25))
+```
+
+# Confidence Interval for the Mean with  Unknown Population Standard Deviation(1)
+```{r}
+qt(1-(0.05)/2, df=29)
+qt(1-(0.05), df=29)
+
+qt(1-(0.05)/2, df=99)
+qt(1-(0.05), df=99)
+
+qt(1-(0.05)/2, df=999)
+qt(1-(0.05), df=999)
+
+qnorm(1-(0.05)/2)
+qnorm(1-(0.05))
+```
+
+
+# Confidence Interval for the Mean with  Unknown Population Standard Deviation(2)
+```{r}
+dt2 <- read_excel("Credit Approval Decisions.xlsx",skip=2, sheet="Data")
+mean(dt2$`Revolving Balance`[dt2$Homeowner=="Y"])
+sd(dt2$`Revolving Balance`[dt2$Homeowner=="Y"])
+nrow(dt2[dt2$Homeowner=="Y",])
+
+mean(dt2$`Revolving Balance`[dt2$Homeowner=="Y"]) + qt(1-(0.05)/2, 26) * (sd(dt2$`Revolving Balance`[dt2$Homeowner=="Y"])/sqrt(27))
+mean(dt2$`Revolving Balance`[dt2$Homeowner=="Y"]) - qt(1-(0.05)/2, 26) * (sd(dt2$`Revolving Balance`[dt2$Homeowner=="Y"])/sqrt(27))
+```
+```

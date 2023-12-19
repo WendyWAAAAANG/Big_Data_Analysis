@@ -1,0 +1,31 @@
+---
+title: "In_Class_exercise1"
+author: "Ruoxin WANG"
+date: "2023-09-25"
+output: html_document
+---
+
+Name: Ruoxin WANG
+Student ID: 2030026150
+
+
+Exercise 1: Create a list named "my_list" containing the following elements:
+A character vector with the values "apple", "banana", and "orange".
+A numeric vector with the values 10, 20, and 30.
+A logical vector with the values TRUE, FALSE, and TRUE.
+
+```{r}
+my_list <- list(c("apple", "banana", "orange"), c(10, 20, 30), c(TRUE, FALSE, TRUE))
+print(my_list)
+```
+
+
+Exercise 2: Create a data frame named "my_data" with the following columns:
+A character column named "Name" with the values "John", "Emily", and "Michael".
+A numeric column named "Age" with the values 25, 30, and 35.
+A logical column named "Married" with the values TRUE, FALSE, and TRUE.
+
+```{r}
+my_data <- data.frame("Name" = c("John", "Emily", "Michael"), "Age" = c(25, 30, 35), "Married" = c(TRUE, FALSE, TRUE))
+print(my_data)
+```

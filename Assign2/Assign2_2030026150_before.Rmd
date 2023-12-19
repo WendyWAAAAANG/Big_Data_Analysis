@@ -1,0 +1,181 @@
+---
+title: "BDA_Assignment2"
+author: "Ruoxin WANG"
+date: "2023-11-05"
+output: html_document
+---
+Dataset on Amazon's Top 50 bestselling books from 2009 to 2019 contains 550 books. data has been categorized into fiction and non-fiction using Goodreads. The name of the dataset is bestsellers with categories.csv. No Null Values seen in the dataset. The data dictionary is seen as below.
+
+Data Dictionary
+•	Name - name of the bestselling book (datatype - object)
+•	Author - author of the bestselling book (datatype - object)
+•	User Rating - User Rating of the book (datatype - float)
+•	Reviews - number of reviews for the book (datatype - integer)
+•	Price - price of the book (datatype - integer)
+•	Year - Year when it was a bestseller(datatype - integer)
+•	Genre - Categorised as Fiction and non fiction (datatype - object)
+
+First, import dataset.
+```{r}
+library(dplyr)
+library(ggplot2)
+library(knitr)
+
+# Read the dataset
+df <- read.csv("bestsellers with categories.csv")
+```
+
+
+Now you are a data analyst who wants to create a dashboard using R Flexdashboard for the dataset. The requirements include: 
+
+1. Create two graphs that show the most 10 popular authors and most 10 popular books. [30 Marks]
+```{r}
+# Create a graph for popular authors
+popular_authors <- df %>%
+  group_by(Author) %>%
+  summarise(Count = n()) %>%
+  arrange(desc(Count)) %>%
+  head(10)
+
+# Create a bar chart
+plot1 <- ggplot(popular_authors, aes(x = reorder(Author, -Count), y = Count)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  labs(title = "Top 10 Popular Authors",
+       x = "Author",
+       y = "Number of Bestsellers")
+print(plot1)
+```
+
+```{r}
+# Create a graph for popular books
+popular_books <- df %>%
+  group_by(Name) %>%
+  summarise(Count = n()) %>%
+  arrange(desc(Count)) %>%
+  head(10)
+
+# Create a bar chart
+plot2 <- ggplot(popular_books, aes(x = reorder(Name, -Count), y = Count)) +
+  geom_bar(stat = "identity", fill = "green") +
+  labs(title = "Top 10 Popular Books",
+       x = "Book Name",
+       y = "Number of Bestsellers")
+print(plot2)
+```
+
+
+2. Create a table that shows all the best Books from 2009 to 2019 by users rating and reviews (rating ratings > 4.9 and number of reviews > 5,000). [20 Marks]
+```{r}
+# # Filter the data to select best books based on rating and reviews criteria
+# best_books <- df %>%
+#   filter(User_Rating >= 4.9, Reviews > 5000, Year >= 2009, Year <= 2019) %>%
+#   arrange(desc(User_Rating))
+# 
+# # Create a data frame
+# best_books_df <- data.frame(
+#   Name = best_books$Name,
+#   Author = best_books$Author,
+#   User_Rating = best_books$User_Rating,
+#   Reviews = best_books$Reviews,
+#   Year = best_books$Year
+# )
+# # Print the table in the command line
+# print(best_books_df)
+
+# # Subset the data to select best books based on rating and reviews criteria
+# best_books <- subset(df, User_Rating >= 4.9 & Reviews > 5000 & Year >= 2009 & Year <= 2019)
+# # Order the best books by user rating in descending order
+# best_books <- best_books[order(-best_books$User_Rating), ]
+# # Display the table of best books
+# best_books
+
+
+# Filter the data to select best books based on rating and reviews criteria
+best_books <- df %>%
+  filter(User_Rating >= 4.9, Reviews > 5000, Year >= 2009, Year <= 2019) %>%
+  arrange(desc(User_Rating))
+
+# Display the table of best books
+best_books
+
+
+# # Filter the data to select best books based on rating and reviews criteria
+# best_books <- df[df$User_Rating >= 4.9 & df$Reviews > 5000 & df$Year >= 2009 & df$Year <= 2019, ]
+# 
+# # Order the best books by user rating in descending order
+# #best_books <- best_books[order(-best_books$User_Rating), ]
+# 
+# # Display the table of best books
+# best_books
+
+```
+
+
+3. Create a trendline that shows the numbers of reviews along with 2009 to 2019. [20 Marks]
+```{r}
+# Create a trendline for reviews
+plot3 <- ggplot(df, aes(x = Year, y = Reviews)) +
+  geom_smooth(method = "loess", color = "red") +
+  labs(title = "Trend of Reviews Over Time",
+       x = "Year",
+       y = "Number of Reviews")
+print(plot3)
+```
+
+
+4. Create any table or graph of your interest. [10 Marks]
+Pie Chart -- show the distribution of fiction and non-fiction books.
+```{r}
+fiction_nonfiction <- df %>%
+  group_by(Genre) %>%
+  summarise(Count = n())
+
+pie_chart <- ggplot(fiction_nonfiction, aes(x = "", y = Count, fill = Genre)) +
+  geom_bar(stat = "identity", width = 1) +
+  coord_polar("y") +
+  labs(title = "Distribution of Fiction and Non-Fiction Books")
+
+print(pie_chart)
+```
+
+5. Ensure the tables and graphs are suitable for effectively presenting the results, displaying a high level of organization and aesthetic appeal. [20 Marks]
+(1) Boxplot -- display the distribution of book prices.
+```{r}
+boxplot_plot <- ggplot(df, aes(x = Genre, y = Price, fill = Genre)) +
+  geom_boxplot() +
+  labs(title = "Distribution of Book Prices by Genre",
+       x = "Genre",
+       y = "Price")
+
+print(boxplot_plot)
+```
+
+(2) Bar Chart -- display the number of fiction and non-fiction books by year.
+```{r}
+genre_by_year <- df %>%
+  group_by(Year, Genre) %>%
+  summarise(Count = n())
+
+bar_chart <- ggplot(genre_by_year, aes(x = as.factor(Year), y = Count, fill = Genre)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Number of Fiction and Non-Fiction Books by Year",
+       x = "Year",
+       y = "Count")
+
+print(bar_chart)
+```
+
+(3) Scatter Plot -- visualize the relationship between book price and user rating.
+```{r}
+scatter_plot <- ggplot(df, aes(x = Price, y = User_Rating, color = Genre)) +
+  geom_point() +
+  labs(title = "Book Price vs. User_Rating",
+       x = "Price",
+       y = "User_Rating")
+
+print(scatter_plot)
+```
+
+
+
+

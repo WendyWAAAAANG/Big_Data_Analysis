@@ -1,0 +1,159 @@
+---
+title: "Week 6 Materials"
+output:
+  html_document:
+    df_print: paged
+---
+```{r}
+library(tidyverse)
+library(readxl)
+```
+
+## if the above is not working:
+```{r}
+library(dplyr)
+library(readxl)
+```
+
+# 7.4
+```{r}
+ca <- read_excel("CadSoft Technical Support Response Times.xlsx", skip=1)
+```
+```{r}
+t.test(ca$`Time (min)`,mu=25,alternative="less")
+```
+# 7.6
+```{r}
+vc <- read_excel("Vacation Survey.xlsx", skip=1)
+```
+```{r}
+t.test(vc$Age, mu=35, alternative = "two.sided")
+```
+# 7.9
+```{r}
+ps <- read_excel("Purchase Orders.xlsx", skip=1)
+```
+
+```{r}
+ps <- ps %>%
+  mutate(lead_time=`Arrival Date` - `Order Date`)
+```
+  
+```{r}
+ps %>%
+	group_by(Supplier) %>%
+	summarise(average_lead_time = mean(lead_time))
+
+```
+
+```{r}
+t.test(lead_time ~ Supplier, 
+       data = ps %>% 
+         filter(Supplier == "Alum Sheeting" | Supplier == "Durrable Products"),
+       alternative="greater")
+```
+
+```{r}
+t.test(lead_time ~ Supplier, 
+       data = ps %>% 
+         filter(Supplier == "Alum Sheeting" | Supplier == "Durrable Products"),
+       alternative="less")
+```
+
+# 7.11 paired t-test
+```{r}
+pf <- read_excel("Pile Foundation.xlsx", skip=3)
+```
+
+```{r}
+t.test(pf$Estimated, pf$Actual, paired=TRUE)
+```
+
+# 7.12 F-Test for Equality of Variances  
+```{r}
+var.test(lead_time ~ Supplier, 
+       data = ps %>% 
+         filter(Supplier == "Alum Sheeting" | Supplier == "Durrable Products"),
+       alternative="less")
+```
+
+# 7.13 read and check the data
+```{r}
+is <- read_excel("Insurance Survey.xlsx", skip=2, n_max=25)
+head (is)
+str(is)
+# check the classifications of variables 
+```
+
+# One-way ANOVA
+# aov(formula, data = NULL) we use this function to run the model
+
+# One-way ANOVA (manual)
+```{r}
+mean(is$Satisfaction[is$Education=="College graduate"])
+mean(is$Satisfaction[is$Education=="Graduate degree"])
+mean(is$Satisfaction[is$Education=="Some college"])
+
+var(is$Satisfaction[is$Education=="College graduate"])
+var(is$Satisfaction[is$Education=="Graduate degree"])
+var(is$Satisfaction[is$Education=="Some college"])
+
+# Grand mean = 3.708
+mean(mean(is$Satisfaction[is$Education=="College graduate"])*9/24+mean(is$Satisfaction[is$Education=="Graduate degree"])*8/24+mean(is$Satisfaction[is$Education=="Some college"])*7/24)
+
+# SSA
+9*(3.444-3.708)^2+8*(4.500-3.708)^2+7*(3.143-3.708)^2
+
+# MSA
+(9*(3.444-3.708)^2+8*(4.500-3.708)^2+7*(3.143-3.708)^2)/(3-1)
+
+# SSW
+(9-1)*1.028+(8-1)*0.571+(7-1)*1.476
+
+# MSW
+((9-1)*1.028+(8-1)*0.571+(7-1)*1.476)/(24-3)
+
+# SST
+(9*(3.444-3.708)^2+8*(4.500-3.708)^2+7*(3.143-3.708)^2)+((9-1)*1.028+(8-1)*0.571+(7-1)*1.476)
+
+# F-test statistic
+((9*(3.444-3.708)^2+8*(4.500-3.708)^2+7*(3.143-3.708)^2)/(3-1)) / (((9-1)*1.028+(8-1)*0.571+(7-1)*1.476)/(24-3))
+
+# F-test
+qf(0.05, 2, 21, lower.tail = FALSE)
+pf(3.925, 2, 21, lower.tail = FALSE)
+
+# R2
+(9*(3.444-3.708)^2+8*(4.500-3.708)^2+7*(3.143-3.708)^2)/((9*(3.444-3.708)^2+8*(4.500-3.708)^2+7*(3.143-3.708)^2)+((9-1)*1.028+(8-1)*0.571+(7-1)*1.476))
+
+1-(((9-1)*1.028+(8-1)*0.571+(7-1)*1.476)/((9*(3.444-3.708)^2+8*(4.500-3.708)^2+7*(3.143-3.708)^2)+((9-1)*1.028+(8-1)*0.571+(7-1)*1.476)))
+```
+# One-way ANOVA in R
+```{r}
+aov<-aov(Satisfaction~Education, data = is)
+```
+
+```{r}
+summary(aov)
+#summary(aov(is$Satisfaction~is$Education))
+```
+# Tukey's HSD
+```{r}
+TukeyHSD(aov)
+```
+
+# One-way ANOVA in a linear model (reference-coded model)
+```{r}
+lm<-lm(Satisfaction~Education, data = is)
+#lm<-lm(Satisfaction~as.factor(Education), data = is)
+```
+```{r}
+summary(lm)
+```
+
+# Check for homoscedasticity (homogeneity of variance)
+# For the that follows, the null hypothesis is that all populations variances are equal, the alternative hypothesis is that at least two of them differ. Consequently, p-values less than 0.1, 0.05, 0.001 (depending on your desired threshold) suggest variances are significantly different and the homogeneity of variance assumption has been violated.
+```{r}
+bartlett.test(Satisfaction~Education, data = is)
+```
+

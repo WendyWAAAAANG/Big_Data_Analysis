@@ -1,0 +1,164 @@
+---
+title: "Week 10 Materials"
+output:
+  html_document:
+    df_print: paged
+---
+```{r}
+library(tidyverse)
+library(readxl)
+library(MASS)
+options("scipen"=100, "digits"=4)
+```
+
+
+
+
+```{r}
+table(knn_fit,ca2$Decision)
+#confusionMatrix(knn_fit,as.factor(ca2$Decision))
+```
+```{r}
+#suppressWarnings(RNGversion("3.5.3"))
+#install.packages(c("caret", "gains", "pROC"))
+
+library(caret)
+library(gains)
+library(pROC)
+```
+
+#Data Processing, normalized data
+```{r}
+myData <- read_excel("Week_10.xlsx", sheet = "Gym_Data")
+myScoreData<- read_excel("Week_10.xlsx", sheet = "Gym_Score")
+myData1<- scale(myData[2:4]) #centers and scales the columns of a numeric matrix by default
+myData1<- data.frame(myData1, myData$Enroll)
+colnames(myData1)[4] <- 'Enroll'
+myData1$Enroll<- as.factor(myData1$Enroll)
+```
+
+#A series of test/training partitions are created
+```{r}
+set.seed(1)
+myIndex<- createDataPartition(myData1$Enroll, p=0.6, list=FALSE)
+trainSet <- myData1[myIndex,]
+validationSet <- myData1[-myIndex,]
+myCtrl <- trainControl(method="cv", number=10) 
+#10-fold Cross Validation: dividing your training dataset randomly into 10 parts and then using each of 10 parts as testing dataset for the model trained on other 9. 
+myGrid <- expand.grid(.k=c(1:10))
+#Create a Data Frame from All Combinations of all Ks (from 1 to 10)
+set.seed(1)
+```
+
+# K-NN Classification
+```{r}
+KNN_fit <- train(Enroll ~ ., data=trainSet, method = "knn", trControl=myCtrl, tuneGrid = myGrid)
+KNN_fit
+KNN_Class <- predict(KNN_fit, newdata = validationSet)
+```
+#The AIAG1 suggests that a kappa value of at least 0.75 indicates good agreement. However, larger kappa values, such as 0.90, are preferred
+
+#Generating the confusion matrix
+
+```{r}
+confusionMatrix(KNN_Class, validationSet$Enroll, positive = '1')
+```
+
+#Generating the confusion probability matrix 
+```{r}
+KNN_Class_prob <- predict(KNN_fit, newdata = validationSet, type='prob')
+KNN_Class_prob
+
+```
+
+#Generating the confusion matrix if the probalility of postive cases is larger than 0.403
+```{r}
+confusionMatrix(as.factor(ifelse(KNN_Class_prob[,2]>0.403, '1', '0')), validationSet$Enroll, positive = '1')
+```
+
+
+```{r}
+validationSet$Enroll <- as.numeric(as.character(validationSet$Enroll))
+gains_table <- gains(validationSet$Enroll, KNN_Class_prob[,2])
+gains_table
+```
+```{r}
+plot(c(0, gains_table$cume.pct.of.total*sum(validationSet$Enroll))~c(0, gains_table$cume.obs), xlab = "# of cases", ylab = "Cumulative", main="Cumulative Lift Chart", type="l")
+lines(c(0, sum(validationSet$Enroll))~c(0, dim(validationSet)[1]), col="red", lty=2)
+barplot(gains_table$mean.resp/mean(validationSet$Enroll), names.arg=gains_table$depth, xlab="Percentile", ylab="Lift", ylim=c(0,3), main="Decile-Wise Lift Chart")
+
+```
+
+```{r}
+roc_object <- roc(validationSet$Enroll, KNN_Class_prob[,2])
+plot.roc(roc_object)
+auc(roc_object)
+PreProcessing <- preProcess(myData[ , 2:4], method = c("center", "scale")) 
+myScoreData1 <- predict(PreProcessing, myScoreData) 
+KNN_Score <- predict(KNN_fit, newdata=myScoreData1)
+myScoreData <- data.frame(myScoreData, KNN_Score)
+View(myScoreData)
+```
+
+
+
+
+
+# Discriminant Analysis - bonus
+```{r}
+ca <- read_excel("Credit Approval Decisions Coded.xlsx", skip=2)
+ca1=ca[1:25,]
+ca2=ca[26:50,]
+```
+
+```{r}
+lda_fit <- lda(Decision~., data = ca1)
+lda_fit
+```
+
+```{r}
+ca2$lda_Pred<-predict(lda_fit)$posterior
+ca2$lda_Disc<-predict(lda_fit)$x
+ca2 
+```
+
+#Generating the confusion matrix
+```{r}
+table(predict(lda_fit,type="class")$class,ca2$Decision)
+# confusionMatrix(predict(lda_fit,type="class")$class,as.factor(ca2$Decision))
+```
+
+```{r}
+data.frame(ca2, predict(lda_fit)$x) %>%
+  ggplot(aes(x=LD1, y=0)) +
+  geom_point(aes(color = factor(Decision))) +
+  geom_vline(xintercept=0, color="red", size=0.5) +
+  theme_classic()
+```
+
+# Logistic Regression - bonus
+```{r}
+ca <- read_excel("Credit Approval Decisions Coded.xlsx", skip=2)
+ca1=ca[1:25,]
+ca2=ca[26:50,]
+```
+
+# Here, we cannot include all variables in the dataset mainly because of multicollinearity issue & small sample size
+```{r}
+fit_glm <- glm(Decision~`Homeowner`+`Credit Score`+`Years of Credit History`+`Revolving Balance`, data = ca1, family = binomial(link="logit"))
+```
+```{r}
+summary(fit_glm)
+```
+
+```{r}
+ca2$Pred<-round(predict(fit_glm, ca2, type="response"),digits=2)
+ca2 %>% dplyr::select(Decision,Pred)
+```
+
+#Generating the confusion matrix
+```{r}
+table(predict(fit_glm,newdata=ca2,type="response")>=0.5,ca2$Decision)
+
+#confusionMatrix(as.factor(as.numeric(predict(fit_glm, newdata = ca2, type = "response")>=0.5)),as.factor(ca2$Decision))
+```

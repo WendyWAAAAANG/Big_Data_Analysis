@@ -1,0 +1,204 @@
+---
+title: "BDA_Assignment1"
+author: "Ruoxin WANG"
+date: "2023-10-19"
+output: html_document
+---
+#Individual Assignment
+
+The purpose of this assignment is to make sure that you are picking up the R based analytics skills (Please do not use other tools to generate the answers!) that have been introduced in this class and check your ability to translate research questions into analytical approaches.
+
+As you write your answers, please make sure to follow the instructions below:
+
+•	Use the datasets that were uploaded on iSpace.
+•	Make sure to have the entire process from data loading to analysis and interpretation in the submission.
+•	All your answers including your identity, codes, interpretation should be in one file (HTML or PDF). Any sort of multiple files will be graded as zero mark.
+•	Explain your approach to the analysis; no explanation = no mark
+•	You can discuss the coding with your friends. However, any visible overlap in your interpretation will be considered plagiarism.
+•	There can be more than one correct answer to every question. Use any technique that you learned from the classroom.
+
+```{r}
+# to read Excel file, we have to install 'readxl' package first.
+# install.packages('readxl')
+```
+
+```{r}
+# 加载必要的包
+library(dplyr)
+library(readxl)
+
+# 读取数据文件 Credit_Cards
+file_path <- "Assignment-Dataset.xlsx"
+data <- excel_sheets(file_path)
+credit_cards <- read_excel(file_path, sheet = data[1])
+gas_prices <- read_excel(file_path, sheet = data[2])
+tshirts <- read_excel(file_path, sheet = data[3])
+```
+
+1.	Greg Metcalf works for a national credit card company, and he is performing a customer value analysis on a subset of credit card customers. In order to perform the RFM analysis on the customers, Greg has compiled the accompanying data file Credit_Cards that contains the dates of the last transaction (LastTransactionDate), total number of transactions in the past two years (Frequency), and total spending during the past two years (Spending). [50 marks]
+```{r}
+# check dataset.
+head(credit_cards)
+```
+
+a.	Greg wants to calculate the number of days between January 1, 2022, and the last transaction date. Create a new variable “DaysSinceLast” that contains the number of days since the last transaction. What is the average number of days since the last purchase for all the customers?
+```{r}
+# a.
+# create 'LastTransactionDate' to store the number of days since the last transaction.
+credit_cards$LastTransactionDate <- as.Date(credit_cards$LastTransactionDate, format = "%Y-%m-%d")
+credit_cards$DaysSinceLast <- as.numeric(difftime(as.Date("2022-01-01"), credit_cards$LastTransactionDate, units = "days"))
+credit_cards
+
+# calculate the average number of days since the last purchase for all the customers.
+day_mean <- mean(credit_cards$DaysSinceLast, na.rm = TRUE)
+cat("The average number of days since the last purchase:", day_mean, "\n")
+```
+
+b.	Create the RFM scores for each customer. How many customers have an RFM score of 555? What is their average spending?
+The recency, frequency, monetary value (RFM) model assigns a firm's customer base a particular trait, which can be used to improve marketing analysis. For each attribute (recency, frequency, and monetary value), customers are given a score from 1 (lowest) to 5 (best) based on their observed purchasing behavior.
+```{r}
+# b.
+# create RFM score.
+# here we use paste0 to combine 3 score together.
+credit_cards$RFM_Score <- paste0(
+  ifelse(credit_cards$DaysSinceLast <= 200, 5, ifelse(credit_cards$DaysSinceLast <= 300, 4, ifelse(credit_cards$DaysSinceLast <= 400, 3, ifelse(credit_cards$DaysSinceLast <= 500, 2, 1)))),
+  ifelse(credit_cards$Frequency >= 100, 5, ifelse(credit_cards$Frequency >= 80, 4, ifelse(credit_cards$Frequency <= 60, 3, ifelse(credit_cards$Frequency <= 40, 2, 1)))),
+  ifelse(credit_cards$TotalSpending >= 10000, 5, ifelse(credit_cards$TotalSpending >= 8000, 4, ifelse(credit_cards$TotalSpending <= 6000, 3, ifelse(credit_cards$TotalSpending <= 4000, 2, 1))))
+)
+
+# calculate number of customer who has an RFM score of 55.
+rfm_count <- sum(credit_cards$RFM_Score == "555")
+cat("Number of customer with RFM score of 555:", rfm_count, "\n")
+
+# calculate the average spending of customer with RFM score of 555.
+spend_mean <- mean(credit_cards$TotalSpending[credit_cards$RFM_Score == "555"], na.rm = TRUE)
+cat("Average spending of customer with RFM score of 555:", spend_mean, "\n")
+```
+
+c.	Create a new variable called “LogSpending” that contains the natural logarithms for the total spending during the past two years. Bin the logarithm values into five equal-interval groups. Label the groups usingnumbers 1 (lowest values) to 5 (highest values). How many observations are in group 2?
+```{r}
+# c.
+# calculate value of 'LogSpending' column.
+credit_cards$LogSpending <- log(credit_cards$TotalSpending)
+# create a column to store the group of LogSpending for each customer.
+credit_cards$LogSpendingGroup <- cut(credit_cards$LogSpending, breaks = 5, labels = FALSE)
+head(credit_cards)
+
+# calculate the number of observations in group 2.
+group2_num <- sum(credit_cards$LogSpendingGroup == 2)
+cat("Number of observations in group 2:", group2_num, "\n")
+```
+
+d.	Create a new variable called “AverageOrderSize” that contains the average spending per order. This is calculated by dividing total spending (Spending) by total number of transactions (Frequency) in the past two years. Bin the values of AverageOrderSize into five equal-interval groups. Label the groups using numbers 1 (lowest values) to 5 (highest values). How many observations are in group 2?
+```{r}
+# d.
+# create 'AverageOrderSize' to store the average spending per order.
+credit_cards$AverageOrderSize <- credit_cards$TotalSpending / credit_cards$Frequency
+# create a column to store the group result according to 'AverageOrderSize'.
+credit_cards$AverageOrderSizeGroup <- cut(credit_cards$AverageOrderSize, breaks = 5, labels = FALSE)
+#credit_cards$AverageOrderSizeGroup <- 6 - credit_cards$AverageOrderSizeGroup
+
+# calculate the number of observation of group 2.
+group2_num <- sum(credit_cards$AverageOrderSizeGroup == 2)
+cat("Number of observation of group 2:", group2_num, "\n")
+```
+
+e.	Compare the groups in parts c and d. Are the groupings the same or different? Interpret your comparison. 
+```{r}
+# e.
+print(credit_cards$LogSpendingGroup)
+print(credit_cards$AverageOrderSizeGroup)
+```
+Most of the grouping are similar, but some of data which maybe on the boundary of criteria show difference in grouping.
+
+2.	The accompanying data file Gas_Prices shows the average price of gas (Price in $ per gallon) for the 50 states. Suppose that as a data analyst who works for government, you came to find out the outlies. [30 marks]
+```{r}
+# check dataset.
+head(gas_prices)
+```
+
+a.	Construct a boxplot for the Price variable. Does the boxplot suggest that outliers exist?
+```{r}
+# a.
+# construct the boxplot.
+boxplot(gas_prices$Price, main = "Gas Prices Boxplot", ylab = "Price ($ per gallon)")
+```
+
+b.	Use z-scores to determine if there are any outliers for the Price variable. Are your results consistent with part a? Explain why or why not.
+```{r}
+# b.
+# calculate z-scores.
+# z_scores <- scale(gas_prices$Price)
+price_mean <- mean(gas_prices$Price)
+std_dev <- sd(gas_prices$Price)
+z_scores <- (gas_prices$Price - price_mean) / std_dev
+
+# use z-score to find outlier.
+outliers <- which(z_scores > 3 | z_scores < -3)
+cat("Number of outliers：", length(outliers), "\n")
+```
+The result is not consistent with part a. 
+Because z_scores cannot detect the outlier, unless the data correspond the assumption of normal distribution.
+And the method to calculate the outlier of z-score and boxplot is not same. As for boxplot, it calculate outlier using IQR, which is different from the principle of z-score.
+
+c.	What is the mean of the average price of gas without the outliers
+```{r}
+# mean of the average price of gas without the outliers.
+library(tidyverse)
+outlier <- boxplot.stats(gas_prices$Price)$out
+price_mean <- gas_prices[gas_prices$Price != outlier, ]
+price_mean <- mean(price_mean$Price)
+cat("Average price of gas without the outliers：", price_mean, "\n")
+```
+
+
+3.	A company that sells unisex t-shirts is interested in finding out the color and size of its best-selling t-shirt. The accompanying data file TShirts contains the size, color, and quantity of t-shirts that were ordered during the transactions. [20 marks]
+```{r}
+# check dataset.
+head(tshirts)
+```
+
+a.	Construct a contingency table that shows the total quantity sold for each color and size combination. How many size M red t-shirts were sold? How many size XL purple t-shirts were sold?
+```{r}
+# a.
+# construct a contingency table that shows the total quantity sold for each color and size combination.
+contingency_table <- table(tshirts$Color, tshirts$Size)
+print(contingency_table)
+
+# calculate the number of shirt of M + red, XL + purple.
+Mred_num <- contingency_table["Red", "M"]
+XLpurple_num <- contingency_table["Purple", "XL"]
+
+cat('\n', "Number of M red t-shirts were sold:", Mred_num, "\n")
+cat("Number of XL purple t-shirts were sold:", XLpurple_num, "\n")
+```
+
+b.	Construct a heat map that displays colors or color intensity based on the total quantity sold. Which two color and size combinations are the most?
+```{r}
+# import ggplot2 package.
+library(ggplot2)
+
+# calculate total amount of each combination of color and size.
+# and sort the total number decending.
+#sales_total <- aggregate(Quantity ~ Size + Color, data = tshirts, FUN = sum)
+#sales_total <- sales_total[order(-sales_total$Quantity), ]
+
+sales_summary_df <- as.data.frame(as.table(contingency_table))
+# construct the heat map.
+heat_map <- ggplot(sales_summary_df, aes(x = Var1, y = Var2, fill = Freq)) +
+  geom_tile() +
+  scale_fill_gradient(low = "white", high = "blue") +
+  labs(title = "T-Shirt Sales Heat Map", x = "Size", y = "Color", fill = "Total Quantity Sold")
+
+print(heat_map)
+
+# find top two color and size combinations.
+#top_combinations <- head(sales_summary, 2)
+#cat("The top two color and size combinations:\n", paste(top_combinations$Size, #top_combinations$Color, sep = "+"), "\n")
+```
+According to heatmap, we can find that S blue and S Yellow have the highest sell amount.
+
+
+
+
+

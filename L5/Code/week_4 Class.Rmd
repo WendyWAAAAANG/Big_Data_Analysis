@@ -1,0 +1,638 @@
+---
+title: "Week 4 Material"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+  word_document: default
+---
+
+
+
+```{r}
+rm(list = ls())
+dt <- read_csv("projects.csv")
+```
+
+# proprotion is commonly used to deal with categorical data
+```{r}
+dt %>%
+  group_by(poverty_level) %>%
+  summarise(n = n()) %>%
+  mutate(prop = n / sum(n))
+```
+
+
+```{r}
+dt %>%
+  select(id, grade_level, poverty_level)
+```
+# Contingency Table 列联表
+
+```{r}
+dt %>%
+  select(grade_level, poverty_level) %>%
+  table()
+```
+
+```{r}
+dt %>%
+  select(grade_level, poverty_level) %>%
+  table() %>%
+  prop.table()
+```
+
+```{r}
+dt %>%
+  select(poverty_level, resource_type, grade_level) %>%
+  table()
+```
+
+```{r}
+dt %>%
+  select(grade_level, poverty_level) %>%
+  filter(poverty_level != "unknown") 
+```
+
+# Pivot Table
+```{r}
+library(rpivotTable)
+dt %>% 
+  filter(poverty_level != "unknown")  %>%
+  filter(is.na(grade_level)==FALSE)    %>%
+  rpivotTable(rows=c("grade_level"), cols=c("poverty_level"))
+```
+
+# Measures of location: Application
+```{r}
+library(modeest)
+```
+
+
+# Measures of location: Application - Repair time
+```{r}
+library(readxl)
+repair<-read_excel("Computer Repair Times.xlsx", skip=2,sheet=1)
+repair <- repair %>% rename(time = `Repair Time (Days)`)
+```
+
+
+```{r}
+repair %>% 
+  ggplot(aes(x=time)) +
+  geom_histogram(binwidth = 1) +
+  theme_classic()
+```
+```{r}
+repair %>%
+  group_by(time) %>%
+  summarise(count = n()) %>% 
+  arrange(time) %>%
+  mutate(cum_freq = cumsum(count)) %>%
+  mutate(cum_freq = cumsum(count), rel_cum_freq = cum_freq/sum(count)) %>%
+  ungroup()
+```
+
+
+```{r}
+library(tidyverse)
+library(lubridate) ## R package for managing date and time values
+```
+
+## if the above is not working:
+```{r}
+library(dplyr)
+library(readr)
+library(ggplot2)
+library(lubridate)
+```
+
+
+
+```{r}
+dt <- read_csv("donors.csv")
+```
+
+```{r}
+# 
+dt %>% 
+  select(state) %>%
+  group_by(state) %>%
+  summarise(n = n())
+```
+
+```{r}
+dt %>% 
+  select(state) %>%
+  group_by(state) %>%
+  summarise(n = n()) %>%
+#generate a new column that equals to n/sum(n)
+  mutate(freq = n / sum(n))
+```
+
+# Frequncy distribution for numerical (continous) values
+```{r}
+dt %>% 
+  filter(num_projects <= 10) %>%
+  ggplot(aes(x=num_projects)) +
+  geom_histogram() +
+  theme_classic()
+```
+
+# Histogram
+```{r}
+dt %>% 
+  filter(num_projects <= 10) %>%
+  group_by(group = cut(num_projects, breaks = seq(0, max(num_projects), 2))) %>%
+  summarise(num_projects = sum(num_projects)) %>% 
+  ungroup()
+```
+
+```{r}
+dt %>%
+  filter(total_donations < 2000) %>%
+  ggplot(aes(x=total_donations)) +
+  geom_histogram() +
+  theme_classic()
+```
+
+# binwidth
+```{r}
+dt %>%
+  filter(total_donations < 2000) %>%
+  ggplot(aes(x=total_donations)) +
+  geom_histogram(binwidth = 200) +
+  theme_classic()
+```
+
+# bins
+```{r}
+dt %>%
+  filter(total_donations < 2000) %>%
+  ggplot(aes(x=total_donations)) +
+  geom_histogram(bins = 5) +
+  theme_classic()
+```
+
+# Cumulative Frequency Distribution
+```{r}
+dt %>%
+  filter(total_donations < 2000) %>%
+  mutate(bins = cut(total_donations, breaks = 10, dig.lab = 4)) %>%
+  group_by(bins) %>%
+  summarise(count = n()) %>% 
+  arrange(bins) %>%
+  mutate(cum_freq = cumsum(count)) %>%
+  ungroup()
+
+#generate a column called bin (cut() is used to convert Numeric to Factor)
+#breaks = 10 give the number of intervals
+#dig.lab: It determines the number of digits used in formatting the break numbers.
+#cumsum() Returns a number which is the cumulative sums.
+```
+# Cumulative Relative Frequency Distribution
+```{r}
+dt %>%
+  filter(total_donations < 2000) %>%
+  mutate(bins = cut(total_donations, breaks = 10, dig.lab = 4)) %>%
+  group_by(bins) %>%
+  summarise(count = n()) %>%
+  arrange(bins) %>%
+  mutate(cum_freq = cumsum(count), rel_cum_freq = cum_freq/sum(count)) %>%
+  ungroup()
+```
+
+```{r}
+dt %>%
+  filter(total_donations < 2000) %>%
+  mutate(bins = cut(total_donations, breaks = 10, dig.lab = 4)) %>%
+  group_by(bins) %>%
+  summarise(count = n()) %>%
+  arrange(bins) %>%
+  mutate(cum_freq = cumsum(count), rel_cum_freq = cum_freq/sum(count)) %>%
+  ungroup() %>%
+  ggplot(aes(x=bins,y=rel_cum_freq, group=1)) +
+  geom_point() +
+  geom_line() +
+  theme_classic()
+```
+
+
+```{r}
+dt1 <- read_csv("projects.csv")
+
+```
+
+
+## Pie Charts
+
+```{r}
+
+dt1 %>% 
+  select(id, poverty_level, total_price_excluding_optional_support) %>%
+  group_by(poverty_level) %>%
+  summarise(n = n()) %>% 
+  ungroup() %>% 
+  ggplot(aes(x="Pie Chart of Poverty Level", y=n, fill=poverty_level)) +
+  geom_bar(width=1, stat="identity")+
+  coord_polar("y", start=0) +
+  theme_classic()
+```
+
+# bar charts using ggplot
+```{r}
+dt1 %>% 
+  select(id, poverty_level) %>%
+  ggplot(aes(x=poverty_level, fill=poverty_level)) +
+  geom_bar() +
+  theme_classic ()
+```
+
+
+
+## Grouped Bar Charts
+```{r}
+dt1 %>% 
+  select(id, poverty_level, funding_status) %>%
+  ggplot(aes(x=poverty_level, fill=poverty_level)) +
+  geom_bar() +
+  facet_grid(. ~ funding_status) +
+  theme_classic()
+```
+
+## Stacked Bar Chart
+```{r}
+dt1 %>% 
+  select(id, poverty_level, funding_status) %>%
+  group_by(poverty_level, funding_status) %>%
+  summarise(n = n()) %>%
+  ungroup() %>% 
+  ggplot(aes(x=funding_status, y=n, fill=poverty_level)) +
+  geom_bar(stat="identity") +
+  theme_classic()
+```
+
+## Horizontal Grouped Barchart
+```{r}
+dt1 %>% 
+    select(id, poverty_level, funding_status) %>%
+  ggplot(aes(x=poverty_level, fill=poverty_level)) +
+  geom_bar() +
+  facet_grid(. ~ funding_status) +
+  coord_flip() +
+  theme_classic()
+```
+
+
+##Constructing line chart
+```{r}
+myData3 <- read_xlsx("Class.xlsx","Apple_Merck")
+plot(myData3$Apple ~ myData3$Date, main="Monthly stock prices for Apple and Merck", xlab="Date", ylab="Monthly stock price (in $)",
+     col = "blue", type = "l", ylim=c(0,300))
+lines(myData3$Merck~myData3$Date, col="red", type = "l")
+legend("topleft", legend=c("Apple","Merck"), col=c("blue","red"), lty=1)
+
+```
+## Line Charts using ggplot
+```{r}
+dt %>%
+  select(total_price_excluding_optional_support, date_posted) %>%
+  mutate(year = year(mdy(date_posted))) %>%
+  group_by(year) %>%
+  summarize(avg_size = mean(total_price_excluding_optional_support)) %>%
+  ungroup() %>% 
+  ggplot(aes(year, avg_size)) +
+  geom_line() +
+  theme_classic()
+```
+
+## Grouped Line Charts (1)
+```{r}
+dt %>%
+  select(total_price_excluding_optional_support, poverty_level, date_posted) %>%
+  mutate(year = year(mdy(date_posted))) %>%
+  group_by(year, poverty_level) %>%
+  summarize(avg_size = mean(total_price_excluding_optional_support)) %>%
+  ungroup() %>% 
+  ggplot(aes(year, avg_size, colour=poverty_level)) +
+  geom_line() +
+  theme_classic()
+```
+
+## Grouped Line Charts (2)
+```{r}
+dt %>%
+  select(total_price_excluding_optional_support, poverty_level, date_posted) %>%
+  mutate(year = year(mdy(date_posted))) %>%
+  group_by(year, poverty_level) %>%
+  summarize(avg_size = mean(total_price_excluding_optional_support)) %>%
+  ungroup() %>% 
+  filter(poverty_level=="high"|poverty_level=="unknown") %>% ggplot(aes(year, avg_size, colour=poverty_level)) +
+  geom_line() +
+  theme_classic()
+```
+
+## Grouped Line Charts (3)
+```{r}
+dt %>%
+  select(total_price_excluding_optional_support, poverty_level, date_posted) %>%
+  mutate(year = year(mdy(date_posted))) %>%
+  group_by(year, poverty_level) %>%
+  summarize(avg_size = mean(total_price_excluding_optional_support)) %>%
+  ungroup() %>% 
+  filter(poverty_level=="low"|poverty_level=="minimal") %>% ggplot(aes(year, avg_size, colour=poverty_level)) +
+  geom_line() +
+  theme_classic()
+```
+
+## Area Charts
+```{r}
+dt %>%
+  select(total_price_excluding_optional_support, total_price_including_optional_support, date_posted) %>%
+  mutate(year = year(mdy(date_posted))) %>%
+  group_by(year) %>%
+  summarize(total_size = sum(total_price_excluding_optional_support),
+            total_optional = sum(total_price_including_optional_support)) %>%
+  gather("var", "value", -year) %>%
+  ggplot(aes(year, value, fill=var)) +
+  geom_area(alpha=0.8) +
+  theme_classic()
+```
+
+## Scatter Charts using ggplot
+```{r}
+dt %>%
+  sample_n(50) %>%
+  ggplot(aes(total_price_excluding_optional_support, num_donors)) +
+  geom_point() +
+  theme_classic()
+```
+
+
+#Constructing bubble plot
+```{r}
+myData2 <- read_xlsx("Class.xlsx","Birth")
+plot(myData2$Birth_Rate ~ myData2$Life_Exp, type="n")
+symbols(myData2$Birth_Rate ~ myData2$Life_Exp, circles=myData2$GNI, inches=0.5, bg="blue", main="A bubble plot of Birth Rate, Life Expectancy, and GNI", xlab = "Life Expectancy (in years)", ylab ="Birth Rate (in %)")
+
+```
+## Bubble Charts using ggplot
+```{r}
+dt %>%
+  sample_n(50) %>%
+  ggplot(aes(total_price_excluding_optional_support, num_donors, size=num_donors)) +
+  geom_point() +
+  theme_classic()
+```
+
+#Constructing heatmap
+```{r}
+#Import the Bookstores data file and label it myData
+myData3 <- read_xlsx("Class.xlsx","Bookstore")
+myTable <-table(myData3$BookStore, myData3$BookType)
+myTable <- myTable/rowSums(myTable)
+myData3.matrix <- as.matrix(myTable)
+heatmap(myData3.matrix, col = heat.colors(256), scale ="none", cexCol=0.75, cexRow=1,
+        Rowv= NA, Colv = NA)
+
+myBreaks <- c(0, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30)
+myCol <- c("blue", "green", "yellow", "orange1", "red1",
+           "red3")
+heatmap(myData3.matrix, col = myCol, breaks = myBreaks, scale ="none", cexCol=0.75, cexRow=1, Rowv = NA, Colv = NA)
+
+```
+
+
+
+
+```{r}
+# Scatter plot with additional options
+library(ggplot2)
+ggplot(data=mtcars, aes(x=wt, y=mpg)) +
+  geom_point(pch=17, color="blue", size=2) +
+  geom_smooth(method="lm", color="red", linetype=2) +
+  labs(title="Automobile Data", x="Weight", y="Miles Per Gallon")
+```
+
+
+```{r}
+# Scatter plot with faceting and grouping
+data(mtcars)
+mtcars$am <- factor(mtcars$am, levels=c(0,1),
+                    labels=c("Automatic", "Manual"))
+mtcars$vs <- factor(mtcars$vs, levels=c(0,1),
+                    labels=c("V-Engine", "Straight Engine"))
+mtcars$cyl <- factor(mtcars$cyl)
+```
+
+
+```{r}
+library(ggplot2)
+ggplot(data=mtcars, aes(x=hp, y=mpg,
+                        shape=cyl, color=cyl)) +
+  geom_point(size=3) +
+  facet_grid(am~vs) +
+  labs(title="Automobile Data by Engine Type",
+       x="Horsepower", y="Miles Per Gallon")
+```
+
+
+```{r}
+# Using geoms
+data(singer, package="lattice")
+ggplot(singer, aes(x=height)) + geom_histogram()
+
+ggplot(singer, aes(x=voice.part, y=height)) + geom_boxplot()
+
+data(Salaries, package="car")
+library(ggplot2)
+ggplot(Salaries, aes(x=rank, y=salary)) +
+  geom_boxplot(fill="cornflowerblue",
+               color="black", notch=TRUE)+
+  geom_point(position="jitter", color="blue", alpha=.5)+
+  geom_rug(side="l", color="black")
+```
+
+
+```{r}
+# Grouping
+library(ggplot2)
+data(singer, package="lattice")
+ggplot(singer, aes(x=voice.part, y=height)) +
+  geom_violin(fill="lightblue") +
+  geom_boxplot(fill="lightgreen", width=.2)
+```
+
+
+```{r}
+data(Salaries, package="car")
+library(ggplot2)
+ggplot(data=Salaries, aes(x=salary, fill=rank)) +
+  geom_density(alpha=.3)
+
+ggplot(Salaries, aes(x=yrs.since.phd, y=salary, color=rank,
+                     shape=sex)) + geom_point()
+
+ggplot(Salaries, aes(x=rank, fill=sex)) +
+  geom_bar(position="stack") + labs(title='position="stack"')
+
+ggplot(Salaries, aes(x=rank, fill=sex)) +
+  geom_bar(position="dodge") + labs(title='position="dodge"')
+
+ggplot(Salaries, aes(x=rank, fill=sex)) +
+  geom_bar(position="fill") + labs(title='position="fill"')
+```
+
+
+```{r}
+# Placing options
+ggplot(Salaries, aes(x=rank, fill=sex))+ geom_bar()
+
+ggplot(Salaries, aes(x=rank)) + geom_bar(fill="red")
+
+ggplot(Salaries, aes(x=rank, fill="red")) + geom_bar()
+```
+
+
+```{r}
+# Faceting
+data(singer, package="lattice")
+library(ggplot2)
+ggplot(data=singer, aes(x=height)) +
+  geom_histogram() +
+  facet_wrap(~voice.part, nrow=4)
+```
+
+
+```{r}
+library(ggplot2)
+ggplot(Salaries, aes(x=yrs.since.phd, y=salary, color=rank,
+                     shape=rank)) + geom_point() + facet_grid(.~sex)
+
+data(singer, package="lattice")
+library(ggplot2)
+ggplot(data=singer, aes(x=height, fill=voice.part)) +
+  geom_density() +
+  facet_grid(voice.part~.)
+```
+
+
+```{r}
+# Adding smoothed lines
+data(Salaries, package="car")
+library(ggplot2)
+ggplot(data=Salaries, aes(x=yrs.since.phd, y=salary)) +
+  geom_smooth() + geom_point()
+
+ggplot(data=Salaries, aes(x=yrs.since.phd, y=salary,
+                          linetype=sex, shape=sex, color=sex)) +
+  geom_smooth(method=lm, formula=y~poly(x,2),
+              se=FALSE, size=1) +
+  geom_point(size=2)
+```
+
+
+```{r}
+# Modifying axes
+data(Salaries,package="car")
+library(ggplot2)
+ggplot(data=Salaries, aes(x=rank, y=salary, fill=sex)) +
+  geom_boxplot() +
+  scale_x_discrete(breaks=c("AsstProf", "AssocProf", "Prof"),
+                   labels=c("Assistant\nProfessor",
+                            "Associate\nProfessor",
+                            "Full\nProfessor")) +
+  scale_y_continuous(breaks=c(50000, 100000, 150000, 200000),
+                     labels=c("$50K", "$100K", "$150K", "$200K")) +
+  labs(title="Faculty Salary by Rank and Sex", x="", y="")
+```
+
+
+```{r}
+# Legends
+data(Salaries,package="car")
+library(ggplot2)
+ggplot(data=Salaries, aes(x=rank, y=salary, fill=sex)) +
+  geom_boxplot() +
+  scale_x_discrete(breaks=c("AsstProf", "AssocProf", "Prof"),
+                   labels=c("Assistant\nProfessor",
+                            "Associate\nProfessor",
+                            "Full\nProfessor")) +
+  scale_y_continuous(breaks=c(50000, 100000, 150000, 200000),
+                     labels=c("$50K", "$100K", "$150K", "$200K")) +
+  labs(title="Faculty Salary by Rank and Gender",
+       x="", y="", fill="Gender") +
+  theme(legend.position=c(.1,.8))
+```
+
+
+```{r}
+# Scales
+ggplot(mtcars, aes(x=wt, y=mpg, size=disp)) +
+  geom_point(shape=21, color="black", fill="cornsilk") +
+  labs(x="Weight", y="Miles Per Gallon",
+       title="Bubble Chart", size="Engine\nDisplacement")
+```
+
+
+```{r}
+data(Salaries, package="car")
+ggplot(data=Salaries, aes(x=yrs.since.phd, y=salary, color=rank)) +
+  scale_color_manual(values=c("orange", "olivedrab", "navy")) +
+  geom_point(size=2)
+
+ggplot(data=Salaries, aes(x=yrs.since.phd, y=salary, color=rank)) +
+  scale_color_brewer(palette="Set1") + geom_point(size=2)
+
+library(RColorBrewer)
+display.brewer.all()
+```
+
+
+```{r}
+# Themes
+data(Salaries, package="car")
+library(ggplot2)
+mytheme <- theme(plot.title=element_text(face="bold.italic",
+                                         size="14", color="brown"),
+                 axis.title=element_text(face="bold.italic",
+                                         size=10, color="brown"),
+                 axis.text=element_text(face="bold", size=9,
+                                        color="darkblue"),
+                 panel.background=element_rect(fill="white",
+                                               color="darkblue"),
+                 panel.grid.major.y=element_line(color="grey",
+                                                 linetype=1),
+                 panel.grid.minor.y=element_line(color="grey",
+                                                 linetype=2),
+                 panel.grid.minor.x=element_blank(),
+                 legend.position="top")
+
+ggplot(Salaries, aes(x=rank, y=salary, fill=sex)) +
+  geom_boxplot() +
+  labs(title="Salary by Rank and Sex", 
+       x="Rank", y="Salary") +
+  mytheme
+```
+
+
+```{r}
+# Multiple graphs per page
+data(Salaries, package="car")
+library(ggplot2)
+p1 <- ggplot(data=Salaries, aes(x=rank)) + geom_bar()
+p2 <- ggplot(data=Salaries, aes(x=sex)) + geom_bar()
+p3 <- ggplot(data=Salaries, aes(x=yrs.since.phd, y=salary)) + geom_point()
+
+library(gridExtra)
+grid.arrange(p1, p2, p3, ncol=3)
+```
+
+
+```{r}
+# Saving graphs
+ggplot(data=mtcars, aes(x=mpg)) + geom_histogram()
+ggsave(file="mygraph.pdf")
+
+```
+

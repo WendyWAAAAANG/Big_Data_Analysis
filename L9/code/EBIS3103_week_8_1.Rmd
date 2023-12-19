@@ -1,0 +1,172 @@
+---
+title: "Week 8 Materials"
+output:
+  html_document:
+    df_print: paged
+---
+```{r}
+library(tidyverse)
+library(readxl)
+library(car)
+```
+
+
+```{r}
+Year <- c(1959, 1960, 1961, 1962, 1963, 1964, 1965, 1966, 1967, 1968, 1969)
+Population <- c(4835, 4970, 5085, 5160, 5310, 5260, 5235, 5255, 5235, 5210, 5175)
+sample1 <- data.frame(Year, Population)
+sample1$Year <- sample1$Year-1964
+```
+
+```{r}
+ggplot(sample1, aes(Year, Population)) +
+  geom_point() +
+  theme_classic()
+```
+#ploynomial regression 
+# The I() function treats the contents within the parentheses as an R expression.
+```{r}
+fit1 <- lm(Population ~ Year, data=sample1)
+fit2 <- lm(Population ~ Year + I(Year^2), data=sample1)
+fit3 <- lm(Population ~ Year + I(Year^2) + I(Year^3), data=sample1)
+summary(fit1)
+summary(fit2)
+summary(fit3)
+
+```
+```{r}
+ggplot(sample1, aes(Year, Population)) +
+  geom_point() +
+  geom_line(aes(y=predict(fit2))) +
+  theme_classic()
+```
+
+
+
+```{r}
+outlierTest(fit2)
+```
+# Cook's Distance
+# which=n specifies the number of your plot you want. Here Cook plot is the fouth figure.
+```{r}
+cutoff <- 4/(nrow(sample1)-length(fit2$coefficients)-2)
+plot(fit2, which=4, cook.levels=cutoff)
+abline(h=cutoff, lty=2, col="red")
+```
+```{r}
+plot(fit2)
+```
+
+#you can normalize the variable wt by replacing it with wt(26.2369). You can try using bcPower(Population, 26.2369) to improve the models' fit to normality.
+
+# if the hypothesis that λ =1 can’t be rejected, there’s no strong evidence that a transformation is needed for the variable 
+```{r}
+shapiro.test(Population)
+```
+```{r}
+
+summary(powerTransform(Population))
+```
+```{r}
+Population_pt<-bcPower(Population,26.2369)
+```
+```{r}
+shapiro.test(Population_pt)
+```
+
+# ANOVA test for nested regression models
+```{r}
+anova(fit1,fit2,fit3)
+```
+
+# AIC test for regression models
+```{r}
+AIC(fit1,fit2)
+```
+
+#------------Selecting Varialbes---------------------------
+```{r}
+data(mtcars)
+```
+
+```{r}
+head(mtcars, 6)
+```
+
+#The step() function in base R performs stepwise model selection (forward, backward, or stepwise) using an AIC criterion.
+#For each step, the AIC column provides the model AIC resulting from the deletion of the variable listed in that row.
+#The AIC value for <none> is the model AIC if no variables are removed.
+```{r}
+fit <- lm(mpg ~ hp + wt + disp + drat,data=mtcars)
+step(fit, direction="backward")
+```
+#nbest： number of subsets of each size to record
+#nvmax:maximum size of subsets to examine
+```{r}
+library(leaps)
+leaps <-regsubsets(mpg ~ hp + wt + disp + drat,data=mtcars, nbest = 2)
+summary (leaps)
+plot(leaps,scale = "adjr2")
+```
+
+```{r}
+# Example 8.5
+# Import the Wages data file into a data frame (table) and label it myData.  
+myData <- read_excel("Chapter8_data.xlsx", sheet = "Wages")
+plot(myData$Age, myData$Wage)
+Linear_Model <- lm(Wage ~ Graduate + Age, data = myData)
+Quadratic_Model  <- lm(Wage ~ Graduate + Age + I(Age^2), data = myData)
+summary(Linear_Model); summary(Quadratic_Model)
+predict(Quadratic_Model, data.frame(Graduate=1, Age=30))
+predict(Quadratic_Model, data.frame(Graduate=1, Age=50))
+predict(Quadratic_Model, data.frame(Graduate=1, Age=70))
+Coeff <- coef(Quadratic_Model)
+-Coeff[3]/(2*Coeff[4])
+
+```
+
+
+```{r}
+# Example 8.6
+# Import the College_Town data file into a data frame (table) and label it myData.  
+myData <- read_excel("Chapter8_data.xlsx", sheet = "College_Town")
+Model1  <- lm(Rent ~ Beds + Baths + Sqft, data = myData)
+Model2  <- lm(Rent ~ Beds + Baths + log(Sqft), data = myData)
+Model3  <- lm(log(Rent) ~ Beds + Baths + Sqft, data = myData)
+Model4  <- lm(log(Rent) ~ Beds + Baths + log(Sqft), data = myData)
+summary(Model1); summary(Model2); summary(Model3); summary(Model4)
+predict(Model1, data.frame(Beds=3, Baths=2, Sqft=1600))
+predict(Model2, data.frame(Beds=3, Baths=2, Sqft=1600))
+plog3 <- predict(Model3, data.frame(Beds=3, Baths=2, Sqft=1600)) 
+se3 <- sigma(Model3); exp(plog3+se3^2/2) 
+plog4 <- predict(Model4, data.frame(Beds=3, Baths=2, Sqft=1600)) 
+se4 <- sigma(Model4); exp(plog4 + se4^2/2) 
+
+
+
+```
+```{r}
+# Example 8.7
+# Import the College_Town data file into a data frame (table) and label it myData.
+myData <- read_excel("Chapter8_data.xlsx", sheet = "College_Town")
+Model4 <- lm(log(Rent) ~ Beds+Baths+log(Sqft), data=myData)
+summary(Model4)
+Pred_lnRent<-predict(Model4)
+se4<-sigma(Model4)
+Pred_Rent<-exp(Pred_lnRent+se4^2/2)
+cor(myData$Rent, Pred_Rent)^2
+```
+```{r}
+# Example 8.8
+# Import the Gender_Gap data file into a data frame (table) and label it myData.  
+myData <- read_excel("Chapter 8 Data 2e.xlsx", sheet = "Gender_Gap")
+TData <- myData[1:150,]; VData <- myData[151:200,]
+#TData <- myData[c(1:100, 151:200),]; VData <- myData[101:150,]
+Model1 <- lm(Salary ~ Size + Experience + Female + Grad, data = TData); summary(Model1)
+Model2 <- lm(Salary ~ Size + Experience + Female + Grad + Female*Experience + Female*Grad, data = TData); summary(Model2)
+Pred1 <- predict(Model1, VData); sqrt(mean((VData$Salary-Pred1)^2))
+Pred2 <- predict(Model2, VData); sqrt(mean((VData$Salary-Pred2)^2))
+
+```
+
+
